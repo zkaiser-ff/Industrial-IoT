@@ -163,7 +163,7 @@ we require two apps to be registered in your AAD:
 * One for web clients accessing web interfaces of Azure Industrial IoT components, we refer to this as
   **ClientsApp**.
 
-Here are the steps to [create AAD App Registrations](https://github.com/Azure/Industrial-IoT/blob/master/docs/deploy/howto-register-aad-applications.md).
+Here are the steps to [create AAD App Registrations](../../../docs/deploy/howto-register-aad-applications.md).
 
 > **NOTE:** For any production deployment of Azure Industrial IoT solution it is required that those AAD
 App Registrations are created and details are provided to the chart. And we strongly recommend having those
@@ -313,7 +313,7 @@ values.
 
 ### Deployed Components
 
-**Documentation**: [Azure Industrial IoT Platform Components](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/readme.md)
+**Documentation**: [Azure Industrial IoT Platform Components](../../../docs/services/readme.md)
 
 Azure Industrial IoT comprises of ten micro-services that this chart will deploy as
 [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/) resources. Five of them
@@ -328,18 +328,18 @@ resource only for one micro-service (`registry`).
 
 Here is the list of all Azure Industrial IoT components that are deployed by this chart:
 
-| Name in `values.yaml` | Description                                                                                                         | Default Image                                           |
-|-----------------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
-| `registry`            | [Registry Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/registry.md)              | `mcr.microsoft.com/iot/opc-registry-service:2.5.2`      |
-| `twin`                | [OPC Twin Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/twin.md)                  | `mcr.microsoft.com/iot/opc-twin-service:2.5.2`          |
-| `history`             | [OPC Historian Access Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/history.md)   | `mcr.microsoft.com/iot/opc-history-service:2.5.2`       |
-| `gateway`             | [OPC Gateway Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/gateway.md)            | `mcr.microsoft.com/iot/opc-gateway-service:2.5.2`       |
-| `vault`               | [OPC Vault Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/vault.md)                | `mcr.microsoft.com/iot/opc-vault-service:2.5.2`         |
-| `alerting`            | [Registry Security Alerting Agent](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/security.md)   | `mcr.microsoft.com/iot/opc-alerting-service:2.5.2`      |
-| `onboarding`          | [Registry Onboarding Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/onboarding.md) | `mcr.microsoft.com/iot/opc-onboarding-service:2.5.2`    |
-| `jobs`                | [Jobs Microservice](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/jobs.md)                      | `mcr.microsoft.com/iot/opc-jobs-service:2.5.2`          |
-| `modelProcessor`      | [Model Importer Agent](https://github.com/Azure/Industrial-IoT/blob/master/docs/services/graph.md)                  | `mcr.microsoft.com/iot/opc-processor-service:2.5.2`     |
-| `blobNotification`    | Blob Notification Service                                                                                           | `mcr.microsoft.com/iot/blob-notification-service:2.5.2` |
+| Name in `values.yaml` | Description                                                              | Default Image                                           |
+|-----------------------|--------------------------------------------------------------------------|---------------------------------------------------------|
+| `registry`            | [Registry Microservice](../../../docs/services/registry.md)              | `mcr.microsoft.com/iot/opc-registry-service:2.5.2`      |
+| `twin`                | [OPC Twin Microservice](../../../docs/services/twin.md)                  | `mcr.microsoft.com/iot/opc-twin-service:2.5.2`          |
+| `history`             | [OPC Historian Access Microservice](../../../docs/services/history.md)   | `mcr.microsoft.com/iot/opc-history-service:2.5.2`       |
+| `gateway`             | [OPC Gateway Microservice](../../../docs/services/gateway.md)            | `mcr.microsoft.com/iot/opc-gateway-service:2.5.2`       |
+| `vault`               | [OPC Vault Microservice](../../../docs/services/vault.md)                | `mcr.microsoft.com/iot/opc-vault-service:2.5.2`         |
+| `alerting`            | [Registry Security Alerting Agent](../../../docs/services/security.md)   | `mcr.microsoft.com/iot/opc-alerting-service:2.5.2`      |
+| `onboarding`          | [Registry Onboarding Microservice](../../../docs/services/onboarding.md) | `mcr.microsoft.com/iot/opc-onboarding-service:2.5.2`    |
+| `jobs`                | [Jobs Microservice](../../../docs/services/jobs.md)                      | `mcr.microsoft.com/iot/opc-jobs-service:2.5.2`          |
+| `modelProcessor`      | [Model Importer Agent](../../../docs/services/graph.md)                  | `mcr.microsoft.com/iot/opc-processor-service:2.5.2`     |
+| `blobNotification`    | Blob Notification Service                                                | `mcr.microsoft.com/iot/blob-notification-service:2.5.2` |
 
 #### Deployment Resource Configuration
 
