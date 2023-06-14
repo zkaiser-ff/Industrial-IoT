@@ -391,6 +391,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                 InitializeKeyframeTrigger();
                 InitializeMetaDataTrigger();
 
+                Subscription.OnSubscriptionKeepAlive
+                    += OnSubscriptionKeepAliveNotification;
                 Subscription.OnSubscriptionDataChange
                     += OnSubscriptionDataChangeNotification;
                 Subscription.OnSubscriptionEventChange
@@ -538,6 +540,16 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                     }
                     return notification;
                 }
+            }
+
+            /// <summary>
+            /// Handle subscription keep alive messages
+            /// </summary>
+            /// <param name="sender"></param>
+            /// <param name="notification"></param>
+            private void OnSubscriptionKeepAliveNotification(object? sender, IOpcUaSubscriptionNotification notification)
+            {
+                CallMessageReceiverDelegates(sender, notification);
             }
 
             /// <summary>
