@@ -181,26 +181,16 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
         /// <returns></returns>
         private WriterGroupModel Copy(WriterGroupModel model)
         {
-            var writerGroup = new WriterGroupModel
+            var writerGroup = model with
             {
-                WriterGroupId = model.WriterGroupId,
                 DataSetWriters = model.DataSetWriters == null ?
                     new List<DataSetWriterModel>() :
                     model.DataSetWriters.ConvertAll(f => f.Clone()),
-                KeepAliveTime = model.KeepAliveTime,
                 LocaleIds = model.LocaleIds?.ToList(),
-                MaxNetworkMessageSize = model.MaxNetworkMessageSize,
                 MessageSettings = model.MessageSettings.Clone(),
-                MessageType = model.MessageType,
-                Name = model.Name,
-                Priority = model.Priority,
-                PublishingInterval = model.PublishingInterval,
-                SecurityGroupId = model.SecurityGroupId,
-                HeaderLayoutUri = model.HeaderLayoutUri,
                 SecurityKeyServices = model.SecurityKeyServices?
                     .Select(c => c.Clone())
-                    .ToList(),
-                SecurityMode = model.SecurityMode
+                    .ToList()
             };
 
             // Set the messaging profile settings
@@ -342,6 +332,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                 }
                 InitializeKeyframeTrigger();
                 InitializeMetaDataTrigger();
+                InitializeKeepAlive();
 
                 // Apply changes
                 await Subscription.UpdateAsync(_subscriptionInfo, ct).ConfigureAwait(false);
@@ -390,6 +381,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
 
                 InitializeKeyframeTrigger();
                 InitializeMetaDataTrigger();
+                InitializeKeepAlive();
 
                 Subscription.OnSubscriptionKeepAlive
                     += OnSubscriptionKeepAliveNotification;
@@ -422,6 +414,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                     Id, _outer._writerGroup.WriterGroupId ?? Constants.DefaultWriterGroupId);
                 await Subscription.CloseAsync().ConfigureAwait(false);
 
+                Subscription.OnSubscriptionKeepAlive
+                    -= OnSubscriptionKeepAliveNotification;
                 Subscription.OnSubscriptionDataChange
                     -= OnSubscriptionDataChangeNotification;
                 Subscription.OnSubscriptionEventChange
@@ -444,13 +438,21 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
             private void InitializeKeyframeTrigger()
             {
                 _frameCount = 0;
-                _keyFrameCount = _outer._subscriptionConfig.Value.DisableKeyFrames == true
-                    ? 0 : _dataSetWriter.KeyFrameCount
-                        ?? _outer._subscriptionConfig.Value.DefaultKeyFrameCount ?? 0;
+                _keyFrameCount = _dataSetWriter.KeyFrameCount
+                    ?? _outer._subscriptionConfig.Value.DefaultKeyFrameCount ?? 0;
             }
 
             /// <summary>
-            /// /// Initializes the Metadata triggering mechanism from the cconfiguration model
+            /// Initialize sending of keep alive messages
+            /// </summary>
+            private void InitializeKeepAlive()
+            {
+                _sendKeepAlives = _dataSetWriter.DataSet?.SendKeepAlive
+                    ?? _outer._subscriptionConfig.Value.EnableDataSetKeepAlives == true;
+            }
+
+            /// <summary>
+            /// Initializes the Metadata triggering mechanism from the cconfiguration model
             /// </summary>
             private void InitializeMetaDataTrigger()
             {
@@ -549,7 +551,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
             /// <param name="notification"></param>
             private void OnSubscriptionKeepAliveNotification(object? sender, IOpcUaSubscriptionNotification notification)
             {
-                CallMessageReceiverDelegates(sender, notification);
+                if (_sendKeepAlives)
+                {
+                    CallMessageReceiverDelegates(sender, notification);
+                }
             }
 
             /// <summary>
@@ -777,6 +782,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
             private uint _metadataSequenceNumber;
             private uint _currentMetadataMajorVersion;
             private uint _currentMetadataMinorVersion;
+            private bool _sendKeepAlives;
         }
 
         /// <summary>

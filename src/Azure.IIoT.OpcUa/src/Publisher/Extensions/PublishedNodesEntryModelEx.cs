@@ -146,6 +146,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Config.Models
                 EndpointUrl = model.EndpointUrl,
                 MetaDataUpdateTime = model.MetaDataUpdateTime,
                 MetaDataUpdateTimeTimespan = model.MetaDataUpdateTimeTimespan,
+                SendKeepAliveDataSetMessages = model.SendKeepAliveDataSetMessages,
                 LastChangeTimespan = model.LastChangeTimespan,
                 Priority = model.Priority,
                 MaxKeepAliveCount = model.MaxKeepAliveCount,
@@ -198,6 +199,14 @@ namespace Azure.IIoT.OpcUa.Publisher.Config.Models
                 return false;
             }
             if (model.DataSetKeyFrameCount != that.DataSetKeyFrameCount)
+            {
+                return false;
+            }
+            if (model.SendKeepAliveDataSetMessages != that.SendKeepAliveDataSetMessages)
+            {
+                return false;
+            }
+            if (model.Priority != that.Priority)
             {
                 return false;
             }

@@ -24,12 +24,12 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Runtime
         public const string DefaultDiscardNewKey = "DiscardNew";
         public const string DefaultSamplingIntervalKey = "DefaultSamplingInterval";
         public const string DefaultPublishingIntervalKey = "DefaultPublishingInterval";
-        public const string DisableKeyFrames = "DisableKeyFrames";
-        public const string DefaultKeyFrameCount = "DefaultKeyFrameCount";
-        public const string DisableDataSetMetaData = "DisableDataSetMetaData";
-        public const string DefaultMetaDataUpdateTime = "DefaultMetaDataUpdateTime";
-        public const string DefaultDataChangeTrigger = "DefaulDataChangeTrigger";
-        public const string FetchOpcNodeDisplayName = "FetchOpcNodeDisplayName";
+        public const string EnableDataSetKeepAlivesKey = "EnableDataSetKeepAlives";
+        public const string DefaultKeyFrameCountKey = "DefaultKeyFrameCount";
+        public const string DisableDataSetMetaDataKey = "DisableDataSetMetaData";
+        public const string DefaultMetaDataUpdateTimeKey = "DefaultMetaDataUpdateTime";
+        public const string DefaultDataChangeTriggerKey = "DefaulDataChangeTrigger";
+        public const string FetchOpcNodeDisplayNameKey = "FetchOpcNodeDisplayName";
         public const string DefaultQueueSize = "DefaultQueueSize";
         public const string MinSubscriptionLifetimeKey = "MinSubscriptionLifetime";
         public const string MaxKeepAliveCountKey = "MaxKeepAliveCount";
@@ -102,23 +102,23 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Runtime
             }
             if (options.DisableDataSetMetaData == null)
             {
-                options.DisableDataSetMetaData = GetBoolOrDefault(DisableDataSetMetaData);
+                options.DisableDataSetMetaData = GetBoolOrDefault(DisableDataSetMetaDataKey);
             }
             if (options.DefaultMetaDataUpdateTime == null)
             {
-                options.DefaultMetaDataUpdateTime = GetDurationOrNull(DefaultMetaDataUpdateTime);
+                options.DefaultMetaDataUpdateTime = GetDurationOrNull(DefaultMetaDataUpdateTimeKey);
             }
-            if (options.DisableKeyFrames == null)
+            if (options.EnableDataSetKeepAlives == null)
             {
-                options.DisableKeyFrames = GetBoolOrDefault(DisableKeyFrames);
+                options.EnableDataSetKeepAlives = GetBoolOrDefault(EnableDataSetKeepAlivesKey);
             }
             if (options.DefaultKeyFrameCount == null)
             {
-                options.DefaultKeyFrameCount = (uint?)GetIntOrNull(DefaultKeyFrameCount);
+                options.DefaultKeyFrameCount = (uint?)GetIntOrNull(DefaultKeyFrameCountKey);
             }
             if (options.ResolveDisplayName == null)
             {
-                options.ResolveDisplayName = GetBoolOrDefault(FetchOpcNodeDisplayName,
+                options.ResolveDisplayName = GetBoolOrDefault(FetchOpcNodeDisplayNameKey,
                     ResolveDisplayNameDefault);
             }
             if (options.DefaultQueueSize == null)
@@ -127,7 +127,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Runtime
             }
 
             if (options.DefaultDataChangeTrigger == null &&
-                Enum.TryParse<DataChangeTriggerType>(GetStringOrDefault(DefaultDataChangeTrigger),
+                Enum.TryParse<DataChangeTriggerType>(GetStringOrDefault(DefaultDataChangeTriggerKey),
                     out var trigger))
             {
                 options.DefaultDataChangeTrigger = trigger;

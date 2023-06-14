@@ -114,20 +114,22 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         /// Try get monitored item notifications from
         /// the subscription's monitored item event payload.
         /// </summary>
+        /// <param name="sequenceNumber"></param>
         /// <param name="timestamp"></param>
         /// <param name="encodeablePayload"></param>
         /// <param name="notifications"></param>
         /// <returns></returns>
-        bool TryGetMonitoredItemNotifications(
+        bool TryGetMonitoredItemNotifications(uint sequenceNumber,
             DateTime timestamp, IEncodeable encodeablePayload,
             IList<MonitoredItemNotificationModel> notifications);
 
         /// <summary>
         /// Get last monitored item notification saved
         /// </summary>
+        /// <param name="sequenceNumber"></param>
         /// <param name="notifications"></param>
         /// <returns></returns>
-        bool TryGetLastMonitoredItemNotifications(
+        bool TryGetLastMonitoredItemNotifications(uint sequenceNumber,
             IList<MonitoredItemNotificationModel> notifications);
     }
 }

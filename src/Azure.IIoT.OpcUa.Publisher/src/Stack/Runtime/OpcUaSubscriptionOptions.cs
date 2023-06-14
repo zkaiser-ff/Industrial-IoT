@@ -60,9 +60,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         public TimeSpan? DefaultMetaDataUpdateTime { get; set; }
 
         /// <summary>
-        /// Whether to enable or disable key frames explicitly
+        /// Whether to enable or disable keep alive messages
         /// </summary>
-        public bool? DisableKeyFrames { get; set; }
+        public bool? EnableDataSetKeepAlives { get; set; }
 
         /// <summary>
         /// Default keyframe count

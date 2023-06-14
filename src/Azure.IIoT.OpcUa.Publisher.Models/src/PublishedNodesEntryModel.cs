@@ -7,6 +7,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
     using System.Runtime.Serialization;
 
     /// <summary>
@@ -106,10 +107,20 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
         public TimeSpan? MetaDataUpdateTimeTimespan { get; set; }
 
         /// <summary>
+        /// Send a keep alive message when a subscription keep
+        /// alive notification is received inside the writer. If keep
+        /// alive messages are not supported by the messaging
+        /// profile chosen this value is ignored.
+        /// </summary>
+        [DataMember(Name = "SendKeepAliveDataSetMessages", Order = 12,
+            EmitDefaultValue = false)]
+        public bool SendKeepAliveDataSetMessages { get; set; }
+
+        /// <summary>
         /// The endpoint URL of the OPC UA server.
         /// </summary>
-        [DataMember(Name = "EndpointUrl", Order = 13,
-            EmitDefaultValue = false)]
+        [DataMember(Name = "EndpointUrl", Order = 13)]
+        [Required]
         public string? EndpointUrl { get; set; }
 
         /// <summary>

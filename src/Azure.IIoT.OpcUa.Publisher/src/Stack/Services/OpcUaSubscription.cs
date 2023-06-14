@@ -142,7 +142,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                 {
                     return null;
                 }
-                return new Notification(this, subscription.Id, 0)
+                return new Notification(this, subscription.Id)
                 {
                     ServiceMessageContext = subscription.Session.MessageContext,
                     ApplicationUri = subscription.Session.Endpoint.Server.ApplicationUri,
@@ -355,7 +355,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             Notification CreateMessage(IEnumerable<MonitoredItemNotificationModel> notifications,
                 MessageType messageType, Subscription subscription)
             {
-                return new Notification(this, subscription.Id, 0, notifications)
+                return new Notification(this, subscription.Id, notifications)
                 {
                     ServiceMessageContext = subscription.Session?.MessageContext,
                     ApplicationUri = subscription.Session?.Endpoint?.Server?.ApplicationUri,
@@ -1038,16 +1038,19 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                 {
                     Handle = this,
                     DisplayName = Name,
-                    PublishingEnabled = false, // false on initialization
+                    PublishingEnabled = false, // always false on initialization
+                    TimestampsToReturn = Opc.Ua.TimestampsToReturn.Both,
                     KeepAliveCount = configuredKeepAliveCount,
                     PublishingInterval = configuredPublishingInterval,
                     MaxNotificationsPerPublish = configuredMaxNotificationsPerPublish,
                     LifetimeCount = configuredLifetimeCount,
                     Priority = configuredPriority,
-                    SequentialPublishing = true, // TODO: Make configurable
+                    // TODO: use a channel and reorder task before calling OnMessage
+                    // to order or else republish is called too often
+                    SequentialPublishing = true,
                     DisableMonitoredItemCache = true, // Not needed anymore
                     RepublishAfterTransfer = true,
-                    FastKeepAliveCallback = OnSubscriptionKeepAlive,
+                    FastKeepAliveCallback = OnSubscriptionKeepAliveNotification,
                     FastDataChangeCallback = OnSubscriptionDataChangeNotification,
                     FastEventCallback = OnSubscriptionEventNotificationList
                 };
@@ -1356,7 +1359,7 @@ Actual (revised) state/desired state:
 
                     if (monitoredItem?.Handle is IOpcUaMonitoredItem wrapper)
                     {
-                        var message = new Notification(this, subscription.Id, sequenceNumber)
+                        var message = new Notification(this, subscription.Id, sequenceNumber: sequenceNumber)
                         {
                             ServiceMessageContext = subscription.Session?.MessageContext,
                             ApplicationUri = subscription.Session?.Endpoint?.Server?.ApplicationUri,
@@ -1368,8 +1371,8 @@ Actual (revised) state/desired state:
                             PublishTimestamp = publishTime
                         };
 
-                        wrapper.TryGetMonitoredItemNotifications(message.PublishTimestamp,
-                            eventFieldList, message.Notifications);
+                        wrapper.TryGetMonitoredItemNotifications(message.SequenceNumber,
+                            message.PublishTimestamp, eventFieldList, message.Notifications);
 
                         if (message.Notifications.Count > 0)
                         {
@@ -1424,7 +1427,7 @@ Actual (revised) state/desired state:
                 "with sequenceNumber {SequenceNumber}, publishTime {PublishTime}.",
                 this, sequenceNumber, publishTime);
 
-            var message = new Notification(this, subscription.Id, sequenceNumber)
+            var message = new Notification(this, subscription.Id)
             {
                 ServiceMessageContext = subscription.Session?.MessageContext,
                 ApplicationUri = subscription.Session?.Endpoint?.Server?.ApplicationUri,
@@ -1468,7 +1471,7 @@ Actual (revised) state/desired state:
                 var sequenceNumber = notification.SequenceNumber;
                 var publishTime = notification.PublishTime;
 
-                var message = new Notification(this, subscription.Id, sequenceNumber)
+                var message = new Notification(this, subscription.Id, sequenceNumber: sequenceNumber)
                 {
                     ServiceMessageContext = subscription.Session?.MessageContext,
                     ApplicationUri = subscription.Session?.Endpoint?.Server?.ApplicationUri,
@@ -1506,8 +1509,8 @@ Actual (revised) state/desired state:
 
                     if (monitoredItem?.Handle is IOpcUaMonitoredItem wrapper)
                     {
-                        wrapper.TryGetMonitoredItemNotifications(message.PublishTimestamp,
-                            item, message.Notifications);
+                        wrapper.TryGetMonitoredItemNotifications(message.SequenceNumber,
+                            message.PublishTimestamp, item, message.Notifications);
                     }
                     else
                     {
@@ -1534,9 +1537,10 @@ Actual (revised) state/desired state:
         /// <summary>
         /// Get notifications
         /// </summary>
+        /// <param name="sequenceNumber"></param>
         /// <param name="notifications"></param>
         /// <returns></returns>
-        private bool TryGetNotifications(
+        private bool TryGetNotifications(uint sequenceNumber,
             [NotNullWhen(true)] out IList<MonitoredItemNotificationModel>? notifications)
         {
             _lock.Wait();
@@ -1551,7 +1555,7 @@ Actual (revised) state/desired state:
                 notifications = new List<MonitoredItemNotificationModel>();
                 foreach (var item in _currentlyMonitored)
                 {
-                    item.TryGetLastMonitoredItemNotifications(notifications);
+                    item.TryGetLastMonitoredItemNotifications(sequenceNumber, notifications);
                 }
                 return true;
             }
@@ -1573,13 +1577,13 @@ Actual (revised) state/desired state:
         /// </summary>
         /// <param name="subscriptionId"></param>
         /// <param name="sequenceNumber"></param>
-        private void AdvancePosition(uint subscriptionId, uint sequenceNumber)
+        private void AdvancePosition(uint subscriptionId, uint? sequenceNumber)
         {
-            if (_currentSubscription?.Id == subscriptionId)
+            if (sequenceNumber.HasValue && _currentSubscription?.Id == subscriptionId)
             {
                 _logger.LogDebug("Advancing stream #{SubscriptionId} to #{Position}",
                     subscriptionId, sequenceNumber);
-                _currentSequenceNumber = sequenceNumber;
+                _currentSequenceNumber = sequenceNumber.Value;
             }
         }
 
@@ -1616,7 +1620,7 @@ Actual (revised) state/desired state:
             public DateTime PublishTimestamp { get; internal set; }
 
             /// <inheritdoc/>
-            public uint? PublishSequenceNumber => _sequenceNumber;
+            public uint? PublishSequenceNumber { get; }
 
             /// <inheritdoc/>
             public IServiceMessageContext? ServiceMessageContext { get; internal set; }
@@ -1629,14 +1633,14 @@ Actual (revised) state/desired state:
             /// </summary>
             /// <param name="outer"></param>
             /// <param name="subscriptionId"></param>
-            /// <param name="sequenceNumber"></param>
             /// <param name="notifications"></param>
-            public Notification(
-                OpcUaSubscription outer, uint subscriptionId, uint sequenceNumber,
-                IEnumerable<MonitoredItemNotificationModel>? notifications = null)
+            /// <param name="sequenceNumber"></param>
+            public Notification(OpcUaSubscription outer, uint subscriptionId,
+                IEnumerable<MonitoredItemNotificationModel>? notifications = null,
+                uint? sequenceNumber = null)
             {
                 _outer = outer;
-                _sequenceNumber = sequenceNumber;
+                PublishSequenceNumber = sequenceNumber;
                 _subscriptionId = subscriptionId;
 
                 MetaData = _outer._currentMetaData;
@@ -1647,7 +1651,7 @@ Actual (revised) state/desired state:
             /// <inheritdoc/>
             public bool TryUpgradeToKeyFrame()
             {
-                if (!_outer.TryGetNotifications(out var allNotifications))
+                if (!_outer.TryGetNotifications(SequenceNumber, out var allNotifications))
                 {
                     return false;
                 }
@@ -1661,7 +1665,7 @@ Actual (revised) state/desired state:
             /// <inheritdoc/>
             public void Dispose()
             {
-                _outer.AdvancePosition(_subscriptionId, _sequenceNumber);
+                _outer.AdvancePosition(_subscriptionId, PublishSequenceNumber);
             }
 #if DEBUG
             /// <inheritdoc/>
@@ -1679,7 +1683,6 @@ Actual (revised) state/desired state:
 #endif
             private readonly OpcUaSubscription _outer;
             private readonly uint _subscriptionId;
-            private readonly uint _sequenceNumber;
         }
 
         private int NumberOfCreatedItems { get; set; }

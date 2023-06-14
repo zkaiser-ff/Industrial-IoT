@@ -109,6 +109,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
                                 Enum.Parse<MessagingMode>(item.WriterGroup.HeaderLayoutUri), // TODO: Make safe
                             MessageEncoding = item.WriterGroup.MessageType,
                             WriterGroupTransport = item.WriterGroup.Transport,
+                            SendKeepAliveDataSetMessages = item.Writer.DataSet?.SendKeepAlive ?? false,
                             MetaDataUpdateTimeTimespan = item.Writer.MetaDataUpdateTime,
                             MetaDataUpdateTime = null,
                             BatchTriggerIntervalTimespan = item.WriterGroup.PublishingInterval,
@@ -374,6 +375,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
                                 dataSet.Header.GetNormalizedMetaDataUpdateTime(),
                             KeyFrameCount =
                                 dataSet.Header.DataSetKeyFrameCount,
+
                             DataSet = new PublishedDataSetModel
                             {
                                 Name = dataSet.Header.DataSetName,
@@ -386,6 +388,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
                                     },
                                 // TODO: Add extension information from configuration
                                 ExtensionFields = new Dictionary<string, string?>(),
+                                SendKeepAlive = dataSet.Header.SendKeepAliveDataSetMessages,
                                 DataSetSource = new PublishedDataSetSourceModel
                                 {
                                     Connection = new ConnectionModel

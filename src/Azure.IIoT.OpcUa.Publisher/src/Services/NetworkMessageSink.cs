@@ -318,10 +318,12 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
         /// <param name="dropped"></param>
         private void LogNotification(IOpcUaSubscriptionNotification args, bool dropped = false)
         {
-            _logger.LogInformation("{Action}{PublishTime:hh.mm.ss.ffffff}: Notification#{Seq}/{PublishSeq} " +
-                "from Subscription {Subscription}{Items}", dropped ? "!!!! Dropped " : string.Empty,
-                args.PublishTimestamp, args.SequenceNumber, args.PublishSequenceNumber ?? 0,
+            _logger.LogInformation(
+                "{Action}|{PublishTime:hh:mm:ss:ffffff}|#{Seq}:{PublishSeq}|{MessageType}|{Subscription}|{Items}",
+                dropped ? "!!!! Dropped !!!! " : string.Empty, args.PublishTimestamp, args.SequenceNumber,
+                args.PublishSequenceNumber?.ToString(CultureInfo.CurrentCulture) ?? "-", args.MessageType,
                 args.SubscriptionName, Stringify(args.Notifications));
+
             static string Stringify(IList<MonitoredItemNotificationModel> notifications)
             {
                 var sb = new StringBuilder();
@@ -329,14 +331,12 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                 {
                     sb
                         .AppendLine()
-                        .Append("   |#")
-                        .Append(item.SequenceNumber)
-                        .Append('|')
-                        .Append(item.Value?.ServerTimestamp.ToString("hh.mm.ss.ffffff", CultureInfo.CurrentCulture))
+                        .Append("   |")
+                        .Append(item.Value?.ServerTimestamp.ToString("hh:mm:ss:ffffff", CultureInfo.CurrentCulture))
                         .Append('|')
                         .Append(item.DataSetFieldName ?? item.DataSetName)
                         .Append('|')
-                        .Append(item.Value?.SourceTimestamp.ToString("hh.mm.ss.ffffff", CultureInfo.CurrentCulture))
+                        .Append(item.Value?.SourceTimestamp.ToString("hh:mm:ss:ffffff", CultureInfo.CurrentCulture))
                         .Append('|')
                         .Append(item.Value?.Value)
                         .Append('|')

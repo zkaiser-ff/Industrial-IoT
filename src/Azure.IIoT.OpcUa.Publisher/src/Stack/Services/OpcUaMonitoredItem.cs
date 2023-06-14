@@ -269,7 +269,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
         }
 
         /// <inheritdoc/>
-        public virtual bool TryGetMonitoredItemNotifications(DateTime timestamp,
+        public virtual bool TryGetMonitoredItemNotifications(uint sequenceNumber, DateTime timestamp,
             IEncodeable evt, IList<MonitoredItemNotificationModel> notifications)
         {
             var item = Item;
@@ -286,7 +286,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
         }
 
         /// <inheritdoc/>
-        public virtual bool TryGetLastMonitoredItemNotifications(
+        public virtual bool TryGetLastMonitoredItemNotifications(uint sequenceNumber,
             IList<MonitoredItemNotificationModel> notifications)
         {
             var lastValue = Item?.LastValue;
@@ -294,7 +294,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             {
                 return false;
             }
-            return TryGetMonitoredItemNotifications(DateTime.UtcNow,
+            return TryGetMonitoredItemNotifications(sequenceNumber, DateTime.UtcNow,
                 lastValue, notifications);
         }
 
@@ -699,13 +699,13 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             }
 
             /// <inheritdoc/>
-            public override bool TryGetMonitoredItemNotifications(DateTime timestamp,
-                IEncodeable evt, IList<MonitoredItemNotificationModel> notifications)
+            public override bool TryGetMonitoredItemNotifications(uint sequenceNumber,
+                DateTime timestamp, IEncodeable evt, IList<MonitoredItemNotificationModel> notifications)
             {
                 if (evt is MonitoredItemNotification min &&
-                    base.TryGetMonitoredItemNotifications(timestamp, evt, notifications))
+                    base.TryGetMonitoredItemNotifications(sequenceNumber, timestamp, evt, notifications))
                 {
-                    return ProcessMonitoredItemNotification(timestamp, min, notifications);
+                    return ProcessMonitoredItemNotification(sequenceNumber, timestamp, min, notifications);
                 }
                 return false;
             }
@@ -790,17 +790,18 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <summary>
             /// Process monitored item notification
             /// </summary>
+            /// <param name="sequenceNumber"></param>
             /// <param name="timestamp"></param>
             /// <param name="monitoredItemNotification"></param>
             /// <param name="notifications"></param>
             /// <returns></returns>
-            protected virtual bool ProcessMonitoredItemNotification(DateTime timestamp,
-                MonitoredItemNotification monitoredItemNotification,
+            protected virtual bool ProcessMonitoredItemNotification(uint sequenceNumber,
+                DateTime timestamp, MonitoredItemNotification monitoredItemNotification,
                 IList<MonitoredItemNotificationModel> notifications)
             {
                 if (!SkipMonitoredItemNotification())
                 {
-                    notifications.Add(ToMonitoredItemNotification(monitoredItemNotification));
+                    notifications.Add(ToMonitoredItemNotification(sequenceNumber, monitoredItemNotification));
                     return true;
                 }
                 return false;
@@ -809,10 +810,11 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <summary>
             /// Convert to monitored item notifications
             /// </summary>
+            /// <param name="sequenceNumber"></param>
             /// <param name="notification"></param>
             /// <returns></returns>
             protected MonitoredItemNotificationModel ToMonitoredItemNotification(
-                MonitoredItemNotification notification)
+                uint sequenceNumber, MonitoredItemNotification notification)
             {
                 Debug.Assert(Item != null);
                 Debug.Assert(Template != null);
@@ -824,8 +826,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                     DataSetName = Template.DisplayName,
                     NodeId = NodeId,
                     Value = notification.Value,
-                    SequenceNumber = notification.Message?.IsEmpty != false
-                        ? null : notification.Message.SequenceNumber
+                    SequenceNumber = sequenceNumber
                 };
             }
 
@@ -942,8 +943,8 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             }
 
             /// <inheritdoc/>
-            protected override bool ProcessMonitoredItemNotification(DateTime timestamp,
-                MonitoredItemNotification monitoredItemNotification,
+            protected override bool ProcessMonitoredItemNotification(uint sequenceNumber,
+                DateTime timestamp, MonitoredItemNotification monitoredItemNotification,
                 IList<MonitoredItemNotificationModel> notifications)
             {
                 Debug.Assert(Item != null);
@@ -952,7 +953,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                 Debug.Assert(monitoredItemNotification == Item.LastValue);
                 _heartbeatTimer.Change(_timerInterval, _timerInterval);
 
-                return base.ProcessMonitoredItemNotification(timestamp,
+                return base.ProcessMonitoredItemNotification(sequenceNumber, timestamp,
                     monitoredItemNotification, notifications);
             }
 
@@ -1167,7 +1168,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             }
 
             /// <inheritdoc/>
-            public override bool TryGetLastMonitoredItemNotifications(
+            public override bool TryGetLastMonitoredItemNotifications(uint sequenceNumber,
                 IList<MonitoredItemNotificationModel> notifications)
             {
                 // Dont call base implementation as it is not what we want.
@@ -1177,15 +1178,15 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                     DataSetName = Template.DisplayName,
                     DataSetFieldName = Template.DisplayName,
                     NodeId = Template.StartNodeId,
-                    SequenceNumber = 0,
+                    SequenceNumber = sequenceNumber,
                     Value = _lastValue ?? new DataValue(StatusCodes.BadNoDataAvailable)
                 });
                 return true;
             }
 
             /// <inheritdoc/>
-            public override bool TryGetMonitoredItemNotifications(DateTime timestamp,
-                IEncodeable evt, IList<MonitoredItemNotificationModel> notifications)
+            public override bool TryGetMonitoredItemNotifications(uint sequenceNumber,
+                DateTime timestamp, IEncodeable evt, IList<MonitoredItemNotificationModel> notifications)
             {
                 Debug.Fail("Should never be called since item is disabled.");
                 return false;
@@ -1194,8 +1195,9 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <summary>
             /// Called when data is received from the sampler
             /// </summary>
+            /// <param name="sequenceNumber"></param>
             /// <param name="value"></param>
-            private void OnSampledDataValueReceived(DataValue value)
+            private void OnSampledDataValueReceived(uint sequenceNumber, DataValue value)
             {
                 var callback = _callback;
                 if (callback == null)
@@ -1209,7 +1211,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                     DataSetName = Template.DisplayName,
                     DataSetFieldName = Template.DisplayName,
                     NodeId = Template.StartNodeId,
-                    SequenceNumber = SequenceNumber.Increment32(ref _sequenceNumber),
+                    SequenceNumber = sequenceNumber,
                     Value = value
                 };
                 callback(MessageType.DeltaFrame, notification.YieldReturn());
@@ -1219,7 +1221,6 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             private readonly IClientSampler<ConnectionModel> _sampler;
             private Action<MessageType, IEnumerable<MonitoredItemNotificationModel>>? _callback;
             private IAsyncDisposable? _sampling;
-            private uint _sequenceNumber;
             private DataValue? _lastValue;
         }
 
@@ -1427,13 +1428,13 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             }
 
             /// <inheritdoc/>
-            public override bool TryGetMonitoredItemNotifications(DateTime timestamp,
+            public override bool TryGetMonitoredItemNotifications(uint sequenceNumber, DateTime timestamp,
                 IEncodeable evt, IList<MonitoredItemNotificationModel> notifications)
             {
                 if (evt is EventFieldList eventFields &&
-                    base.TryGetMonitoredItemNotifications(timestamp, evt, notifications))
+                    base.TryGetMonitoredItemNotifications(sequenceNumber, timestamp, evt, notifications))
                 {
-                    return ProcessEventNotification(timestamp, eventFields, notifications);
+                    return ProcessEventNotification(sequenceNumber, timestamp, eventFields, notifications);
                 }
                 return false;
             }
@@ -1441,15 +1442,16 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <summary>
             /// Process event notifications
             /// </summary>
+            /// <param name="sequenceNumber"></param>
             /// <param name="timestamp"></param>
             /// <param name="eventFields"></param>
             /// <param name="notifications"></param>
             /// <returns></returns>
-            protected virtual bool ProcessEventNotification(DateTime timestamp,
+            protected virtual bool ProcessEventNotification(uint sequenceNumber, DateTime timestamp,
                 EventFieldList eventFields, IList<MonitoredItemNotificationModel> notifications)
             {
                 // Send notifications as event
-                foreach (var n in ToMonitoredItemNotifications(eventFields)
+                foreach (var n in ToMonitoredItemNotifications(sequenceNumber, eventFields)
                     .Where(n => n.DataSetFieldName != null))
                 {
                     notifications.Add(n);
@@ -1460,10 +1462,11 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <summary>
             /// Convert to monitored item notifications
             /// </summary>
+            /// <param name="sequenceNumber"></param>
             /// <param name="eventFields"></param>
             /// <returns></returns>
             protected IEnumerable<MonitoredItemNotificationModel> ToMonitoredItemNotifications(
-                EventFieldList eventFields)
+                uint sequenceNumber, EventFieldList eventFields)
             {
                 Debug.Assert(Item != null);
                 Debug.Assert(Template != null);
@@ -1472,9 +1475,6 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                 {
                     for (var i = 0; i < eventFields.EventFields.Count; i++)
                     {
-                        var sequenceNumber = eventFields.Message?.IsEmpty != false
-                                ? (uint?)null
-                                : eventFields.Message.SequenceNumber;
                         yield return new MonitoredItemNotificationModel
                         {
                             Id = Template.Id ?? string.Empty,
@@ -1824,7 +1824,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             }
 
             /// <inheritdoc/>
-            protected override bool ProcessEventNotification(DateTime timestamp,
+            protected override bool ProcessEventNotification(uint sequenceNumber, DateTime timestamp,
                 EventFieldList eventFields, IList<MonitoredItemNotificationModel> notifications)
             {
                 Debug.Assert(Item != null);
@@ -1889,7 +1889,8 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                     }
                 }
 
-                var monitoredItemNotifications = ToMonitoredItemNotifications(eventFields).ToList();
+                var monitoredItemNotifications = ToMonitoredItemNotifications(
+                    sequenceNumber, eventFields).ToList();
                 var conditionIdIndex = state.ConditionIdIndex;
                 var retainIndex = state.RetainIndex;
                 if (conditionIdIndex < monitoredItemNotifications.Count &&

@@ -368,7 +368,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         /// <param name="callback"></param>
         /// <returns></returns>
         internal IAsyncDisposable RegisterSampler(TimeSpan samplingRate, ReadValueId item,
-            Action<DataValue> callback)
+            Action<uint, DataValue> callback)
         {
             lock (_samplers)
             {
@@ -1225,7 +1225,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             /// <param name="initialValue"></param>
             /// <param name="callback"></param>
             public Sampler(OpcUaClient outer, TimeSpan samplingRate,
-                ReadValueId initialValue, Action<DataValue> callback)
+                ReadValueId initialValue, Action<uint, DataValue> callback)
             {
                 initialValue.Handle = callback;
                 _values = ImmutableHashSet<ReadValueId>.Empty.Add(initialValue);
@@ -1258,7 +1258,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             /// </summary>
             /// <param name="value"></param>
             /// <param name="callback"></param>
-            public Sampler Add(ReadValueId value, Action<DataValue> callback)
+            public Sampler Add(ReadValueId value, Action<uint, DataValue> callback)
             {
                 value.Handle = callback;
                 _values = _values.Add(value);
@@ -1283,8 +1283,13 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             /// <returns></returns>
             private async Task RunAsync(CancellationToken ct)
             {
-                while (!ct.IsCancellationRequested)
+                for (var sequenceNumber = 1u; !ct.IsCancellationRequested; sequenceNumber++)
                 {
+                    if (sequenceNumber == 0u)
+                    {
+                        continue;
+                    }
+
                     var nodesToRead = new ReadValueIdCollection(_values);
                     try
                     {
@@ -1298,7 +1303,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                         var session = _outer._session;
                         if (session == null)
                         {
-                            NotifyAll(nodesToRead, StatusCodes.BadNotConnected);
+                            NotifyAll(sequenceNumber, nodesToRead, StatusCodes.BadNotConnected);
                             continue;
                         }
 
@@ -1322,30 +1327,29 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                             r => r.StatusCode, response.DiagnosticInfos, nodesToRead);
                         if (values.ErrorInfo != null)
                         {
-                            NotifyAll(nodesToRead, values.ErrorInfo.StatusCode);
+                            NotifyAll(sequenceNumber, nodesToRead, values.ErrorInfo.StatusCode);
                             continue;
                         }
 
                         // Notify clients of the values
-                        values.ForEach(i => ((Action<DataValue>)i.Request.Handle)(
-                            i.Result));
+                        values.ForEach(i => ((Action<uint, DataValue>)i.Request.Handle)(
+                            sequenceNumber, i.Result));
                     }
                     catch (OperationCanceledException) { }
                     catch (ServiceResultException sre)
                     {
-                        NotifyAll(nodesToRead, sre.StatusCode);
+                        NotifyAll(sequenceNumber, nodesToRead, sre.StatusCode);
                     }
                     catch (Exception ex)
                     {
                         var error = new ServiceResult(ex).StatusCode;
-                        NotifyAll(nodesToRead, error.Code);
+                        NotifyAll(sequenceNumber, nodesToRead, error.Code);
                     }
                 }
-                static void NotifyAll(ReadValueIdCollection nodesToRead, uint statusCode)
+                static void NotifyAll(uint seq, ReadValueIdCollection nodesToRead, uint statusCode)
                 {
                     var dataValue = new DataValue(statusCode);
-                    nodesToRead.ForEach(i => ((Action<DataValue>)i.Handle)(
-                        dataValue));
+                    nodesToRead.ForEach(i => ((Action<uint, DataValue>)i.Handle)(seq, dataValue));
                 }
             }
 
