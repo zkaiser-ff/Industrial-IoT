@@ -144,5 +144,12 @@ namespace Azure.IIoT.OpcUa.Publisher
         /// Scale test option
         /// </summary>
         public int? ScaleTestCount { get; set; }
+
+        /// <summary>
+        /// Optional default node id and qualified name namespace
+        /// format to use when serializing nodes in messages and
+        /// responses.
+        /// </summary>
+        public NamespaceFormat? DefaultNamespaceFormat { get; set; }
     }
 }

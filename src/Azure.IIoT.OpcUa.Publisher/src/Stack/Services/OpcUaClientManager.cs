@@ -61,7 +61,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                 throw new ArgumentNullException(nameof(loggerFactory));
             _logger = _loggerFactory.CreateLogger<OpcUaClientManager>();
             _configuration = _options.Value.BuildApplicationConfigurationAsync(
-                 identity == null ? "OpcUaClient" : identity.Id, OnValidate, _logger);
+                 identity == null ? "opc-publisher" : identity.Id, OnValidate, _logger);
             _sessionFactory = sessionFactory ?? new DefaultSessionFactory();
             InitializeMetrics();
         }

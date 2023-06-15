@@ -45,6 +45,7 @@ namespace Azure.IIoT.OpcUa.Publisher
         public const string DebugLogNotificationsKey = "DebugLogNotifications";
         public const string MaxNodesPerDataSetKey = "MaxNodesPerDataSet";
         public const string ScaleTestCountKey = "ScaleTestCount";
+        public const string DefaultNamespaceFormatKey = "DefaultNamespaceFormat";
         public const string EnableRuntimeStateReportingKey = "RuntimeStateReporting";
         public const string RuntimeStateRoutingInfoKey = "RuntimeStateRoutingInfo";
         public const string EnableDataSetRoutingInfoKey = "EnableRoutingInfo";
@@ -107,7 +108,8 @@ namespace Azure.IIoT.OpcUa.Publisher
 
             if (options.CreatePublishFileIfNotExist == null)
             {
-                options.CreatePublishFileIfNotExist = GetBoolOrNull(CreatePublishFileIfNotExistKey);
+                options.CreatePublishFileIfNotExist = GetBoolOrNull(
+                    CreatePublishFileIfNotExistKey);
             }
 
             if (options.MaxNodesPerDataSet == 0)
@@ -213,16 +215,27 @@ namespace Azure.IIoT.OpcUa.Publisher
                 options.MaxNetworkMessageSize = GetIntOrNull(IoTHubMaxMessageSize);
             }
 
+            if (options.DefaultMaxDataSetMessagesPerPublish == null)
+            {
+                options.DefaultMaxDataSetMessagesPerPublish = (uint?)GetIntOrNull(
+                    DefaultMaxMessagesPerPublishKey);
+            }
+
             if (options.UseStandardsCompliantEncoding == null)
             {
                 options.UseStandardsCompliantEncoding = GetBoolOrDefault(
                     UseStandardsCompliantEncodingKey, UseStandardsCompliantEncodingDefault);
             }
 
-            if (options.DefaultMaxDataSetMessagesPerPublish == null)
+            if (options.DefaultNamespaceFormat == null)
             {
-                options.DefaultMaxDataSetMessagesPerPublish = (uint?)GetIntOrNull(
-                    DefaultMaxMessagesPerPublishKey);
+                if (!Enum.TryParse<NamespaceFormat>(GetStringOrDefault(DefaultNamespaceFormatKey),
+                    out var namespaceFormat))
+                {
+                    namespaceFormat = options.UseStandardsCompliantEncoding == true ?
+                        NamespaceFormat.Expanded : NamespaceFormat.Uri;
+                }
+                options.DefaultNamespaceFormat = namespaceFormat;
             }
 
             if (options.MessagingProfile == null)
@@ -230,7 +243,7 @@ namespace Azure.IIoT.OpcUa.Publisher
                 if (!Enum.TryParse<MessagingMode>(GetStringOrDefault(MessagingModeKey),
                     out var messagingMode))
                 {
-                    messagingMode = options.UseStandardsCompliantEncoding.Value ?
+                    messagingMode = options.UseStandardsCompliantEncoding == true ?
                         MessagingMode.PubSub : MessagingMode.Samples;
                 }
 

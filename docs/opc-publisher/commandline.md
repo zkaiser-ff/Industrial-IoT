@@ -69,6 +69,16 @@ Messaging configuration
                                publisher in compliant mode for best
                                interoperability.
                                Default: `False`
+      --nf, --namespaceformat, --DefaultNamespaceFormat=VALUE
+                             The format to use when serializing node ids and
+                               qualified names containing a namespace uri into
+                               a string.
+                               Allowed values:
+                                   `Uri`
+                                   `Index`
+                                   `Expanded`
+                               Default: `Expanded` if `-c` is specified,
+                               otherwise `Uri` for backwards compatibility.
       --mm, --messagingmode, --MessagingMode=VALUE
                              The messaging mode for messages
                                Allowed values:
@@ -131,6 +141,14 @@ Messaging configuration
                                messages are sent, if 1, every message will be a
                                key frame.
                                Default: `0`.
+      --ka, --sendkeepalives, --EnableDataSetKeepAlives[=VALUE]
+                             Enables sending keep alive messages triggered by
+                               writer subscription's keep alive notifications.
+                               This setting can be used to enable the messaging
+                               profile's support for keep alive messages.
+                               If the chosen messaging profile does not support
+                               keep alive messages this setting is ignored.
+                               Default: `False` (to save bandwidth).
       --msi, --metadatasendinterval, --DefaultMetaDataUpdateTime=VALUE
                              Default value in milliseconds for the metadata
                                send interval which determines in which interval
@@ -361,8 +379,9 @@ Subscription settings
                                 environment variable in the form of a duration
                                string in the form `[d.]hh:mm:ss[.fffffff]`.
       --kt, --keepalivethreshold, --MaxKeepAliveCount=VALUE
-                             Specify the number of keep alive packets a server
-                               can miss, before the session is disconneced.
+                             Specify the default number of keep alive packets a
+                               server can miss, before the session is
+                               disconneced.
                                Default: `50`.
       --fd, --fetchdisplayname, --FetchOpcNodeDisplayName[=VALUE]
                              Fetches the displayname for the monitored items

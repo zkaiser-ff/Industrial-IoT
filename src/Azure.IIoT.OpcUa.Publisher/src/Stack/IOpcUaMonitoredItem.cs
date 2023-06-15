@@ -6,12 +6,27 @@
 namespace Azure.IIoT.OpcUa.Publisher.Stack
 {
     using Azure.IIoT.OpcUa.Publisher.Stack.Models;
+    using Azure.IIoT.OpcUa.Publisher.Models;
     using Azure.IIoT.OpcUa.Encoders.PubSub;
     using Opc.Ua;
     using Opc.Ua.Client;
     using Opc.Ua.Client.ComplexTypes;
     using System;
     using System.Collections.Generic;
+
+    /// <summary>
+    /// Update display name
+    /// </summary>
+    /// <param name="displayName"></param>
+    public delegate void UpdateString(string displayName);
+
+    /// <summary>
+    /// Update node id
+    /// </summary>
+    /// <param name="nodeId"></param>
+    /// <param name="messageContext"></param>
+    public delegate void UpdateNodeId(NodeId nodeId,
+        IServiceMessageContext messageContext);
 
     /// <summary>
     /// Monitored item handle
@@ -22,7 +37,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         /// Get any changes in the monitoring mode to apply if any.
         /// Otherwise the returned value is null.
         /// </summary>
-        MonitoringMode? MonitoringModeChange { get; }
+        Opc.Ua.MonitoringMode? MonitoringModeChange { get; }
 
         /// <summary>
         /// Monitored item once added to the subscription. Contract:
@@ -40,19 +55,19 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         /// the relative path either does not exist or we let
         /// subscription take care of resolving the path.
         /// </summary>
-        (string NodeId, string[] Path, Action<string> Updater)? Resolve { get; }
+        (string NodeId, string[] Path, UpdateNodeId Update)? Resolve { get; }
 
         /// <summary>
         /// Register node updater. If this property is null then
         /// the node does not need to be registered.
         /// </summary>
-        (string NodeId, Action<string> Updater)? Register { get; }
+        (string NodeId, UpdateNodeId Update)? Register { get; }
 
         /// <summary>
         /// Get the display name for the node. This is called after
         /// the node is resolved and registered as applicable.
         /// </summary>
-        (string NodeId, Action<string> Updater)? DisplayName { get; }
+        (string NodeId, UpdateString Update)? DisplayName { get; }
 
         /// <summary>
         /// Add the item to the subscription

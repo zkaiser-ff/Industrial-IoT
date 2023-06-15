@@ -529,12 +529,19 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                     switch (trigger)
                     {
                         case ConnectionEvent.Connect:
+                            if (currentSessionState == SessionState.Disconnected)
+                            {
+                                // Start connecting
+                                reconnectTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                                currentSessionState = SessionState.Connecting;
+                            }
+                            goto case ConnectionEvent.ConnectRetry;
                         case ConnectionEvent.ConnectRetry:
                             reconnectPeriod = trigger == ConnectionEvent.Connect ? GetMinReconnectPeriod() :
                                 _reconnectHandler.JitteredReconnectPeriod(reconnectPeriod);
                             switch (currentSessionState)
                             {
-                                case SessionState.Disconnected:
+                                case SessionState.Connecting:
                                     Debug.Assert(_reconnectHandler.State == SessionReconnectHandler.ReconnectState.Ready);
                                     Debug.Assert(_disconnectLock != null);
                                     Debug.Assert(_session == null);
@@ -559,8 +566,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
 
                                     currentSessionState = SessionState.Connected;
                                     break;
+                                case SessionState.Disconnected:
                                 case SessionState.Connected:
-                                    // Nothing to do, already connected
+                                    // Nothing to do, already disconnected or connected
                                     break;
                                 case SessionState.Reconnecting:
                                     Debug.Fail("Should not be connecting during reconnecting.");
@@ -631,9 +639,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                                     NotifyConnectivityStateChange(EndpointConnectivityState.Connecting);
                                     currentSessionState = SessionState.Reconnecting;
                                     break;
+                                case SessionState.Connecting:
                                 case SessionState.Disconnected:
                                 case SessionState.Reconnecting:
-                                    // Nothing to do
+                                    // Nothing to do in this state
                                     break;
                             }
                             break;
@@ -697,6 +706,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                                 case SessionState.Connected:
                                     Debug.Fail("Should not signal reconnected when already connected.");
                                     break;
+                                case SessionState.Connecting:
                                 case SessionState.Disconnected:
                                     Debug.Assert(_reconnectingSession == null);
                                     reconnected?.Dispose();
@@ -706,8 +716,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
 
                         case ConnectionEvent.Disconnect:
 
-                            // If currently reconnecting, dispose the reconnect handler
+                            // If currently reconnecting, dispose the reconnect handler and stop timer
                             _reconnectHandler.CancelReconnect();
+                            reconnectTimer.Change(Timeout.Infinite, Timeout.Infinite);
 
                             await ApplySubscriptionAsync(currentSubscriptions, false,
                                 ct).ConfigureAwait(false);
@@ -1183,6 +1194,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         private enum SessionState
         {
             Disconnected,
+            Connecting,
             Connected,
             Reconnecting
         }

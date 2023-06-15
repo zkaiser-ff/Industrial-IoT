@@ -51,15 +51,15 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         }
 
         /// <inheritdoc/>
-        public virtual (string NodeId, Action<string> Updater)? Register
+        public virtual (string NodeId, UpdateNodeId Update)? Register
             => null;
 
         /// <inheritdoc/>
-        public virtual (string NodeId, Action<string> Updater)? DisplayName
+        public virtual (string NodeId, UpdateString Update)? DisplayName
             => null;
 
         /// <inheritdoc/>
-        public virtual (string NodeId, string[] Path, Action<string> Updater)? Resolve
+        public virtual (string NodeId, string[] Path, UpdateNodeId Update)? Resolve
             => null;
 
         /// <summary>
@@ -517,19 +517,21 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
         internal class DataItem : OpcUaMonitoredItem
         {
             /// <inheritdoc/>
-            public override (string NodeId, string[] Path, Action<string> Updater)? Resolve
+            public override (string NodeId, string[] Path, UpdateNodeId Update)? Resolve
                 => Template.RelativePath != null &&
                     (ResolvedNodeId == Template.StartNodeId || string.IsNullOrEmpty(ResolvedNodeId)) ?
                     (Template.StartNodeId, Template.RelativePath.ToArray(),
-                        v => ResolvedNodeId = NodeId = v) : null;
+                        (v, context) => ResolvedNodeId = NodeId
+                            = v.AsString(context, Template.NamespaceFormat) ?? string.Empty) : null;
 
             /// <inheritdoc/>
-            public override (string NodeId, Action<string> Updater)? Register
+            public override (string NodeId, UpdateNodeId Update)? Register
                 => Template.RegisterRead && !string.IsNullOrEmpty(ResolvedNodeId) ?
-                    (ResolvedNodeId, v => NodeId = v) : null;
+                    (ResolvedNodeId, (v, context) => NodeId
+                            = v.AsString(context, Template.NamespaceFormat) ?? string.Empty) : null;
 
             /// <inheritdoc/>
-            public override (string NodeId, Action<string> Updater)? DisplayName
+            public override (string NodeId, UpdateString Update)? DisplayName
                 => Template.FetchDataSetFieldName == true && Template.DataSetFieldName != null &&
                     !string.IsNullOrEmpty(NodeId) ?
                     (NodeId, v => Template = Template with { DataSetFieldName = v }) : null;
@@ -1230,7 +1232,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
         internal class EventItem : OpcUaMonitoredItem
         {
             /// <inheritdoc/>
-            public override (string NodeId, Action<string> Updater)? DisplayName
+            public override (string NodeId, UpdateString Update)? DisplayName
                 => Template.FetchDataSetFieldName == true &&
                     !string.IsNullOrEmpty(Template.EventFilter.TypeDefinitionId) &&
                     Template.DataSetFieldName == null ?
@@ -1240,11 +1242,12 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                     }) : null;
 
             /// <inheritdoc/>
-            public override (string NodeId, string[] Path, Action<string> Updater)? Resolve
+            public override (string NodeId, string[] Path, UpdateNodeId Update)? Resolve
                 => Template.RelativePath != null &&
                     (NodeId == Template.StartNodeId || string.IsNullOrEmpty(NodeId)) ?
                     (Template.StartNodeId, Template.RelativePath.ToArray(),
-                        v => NodeId = v) : null;
+                        (v, context) => NodeId
+                            = v.AsString(context, Template.NamespaceFormat) ?? string.Empty) : null;
 
             /// <summary>
             /// Monitored item as event
@@ -1495,69 +1498,48 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <returns></returns>
             protected virtual EventFilter GetEventFilter(IOpcUaSession session)
             {
-                // set up the timer even if event is not a pending alarms event.
-                var eventFilter = !string.IsNullOrEmpty(Template.EventFilter.TypeDefinitionId)
-                    ? GetSimpleEventFilter(session) : session.Codec.Decode(Template.EventFilter);
-                TestWhereClause(session, eventFilter);
+                var eventFilter = GetEventFilter(session, out var internalSelectClauses);
+                UpdateFieldNames(session, eventFilter, internalSelectClauses);
+                return eventFilter;
+            }
 
-                // let's keep track of the internal fields we add so that they don't show up in the output
-                var internalSelectClauses = new List<SimpleAttributeOperand>();
-                if (!eventFilter.SelectClauses.Any(x => x.TypeDefinitionId == ObjectTypeIds.BaseEventType
-                    && x.BrowsePath?.FirstOrDefault() == BrowseNames.EventType))
-                {
-                    var selectClause = new SimpleAttributeOperand(ObjectTypeIds.BaseEventType, BrowseNames.EventType);
-                    eventFilter.SelectClauses.Add(selectClause);
-                    internalSelectClauses.Add(selectClause);
-                }
-
-                var sb = new StringBuilder();
+            /// <summary>
+            /// Update field names
+            /// </summary>
+            /// <param name="session"></param>
+            /// <param name="eventFilter"></param>
+            /// <param name="internalSelectClauses"></param>
+            protected void UpdateFieldNames(IOpcUaSession session, EventFilter eventFilter,
+                IReadOnlyList<SimpleAttributeOperand> internalSelectClauses)
+            {
                 // let's loop thru the final set of select clauses and setup the field names used
                 Fields.Clear();
                 foreach (var selectClause in eventFilter.SelectClauses)
                 {
                     if (!internalSelectClauses.Any(x => x == selectClause))
                     {
-                        sb.Clear();
+                        var fieldName = string.Empty;
                         var definedSelectClause = Template.EventFilter.SelectClauses?
                             .ElementAtOrDefault(eventFilter.SelectClauses.IndexOf(selectClause));
                         if (!string.IsNullOrEmpty(definedSelectClause?.DisplayName))
                         {
-                            sb.Append(definedSelectClause.DisplayName);
+                            fieldName = definedSelectClause.DisplayName;
                         }
-                        else
+                        else if (selectClause.BrowsePath != null && selectClause.BrowsePath.Count != 0)
                         {
-                            for (var i = 0; i < selectClause.BrowsePath?.Count; i++)
-                            {
-                                if (i == 0)
-                                {
-                                    if (selectClause.BrowsePath[i].NamespaceIndex != 0)
-                                    {
-                                        if (selectClause.BrowsePath[i].NamespaceIndex < session.NodeCache.NamespaceUris.Count)
-                                        {
-                                            sb
-                                                .Append(session.NodeCache.NamespaceUris.GetString(selectClause.BrowsePath[i].NamespaceIndex))
-                                                .Append('#');
-                                        }
-                                        else
-                                        {
-                                            sb.Append(selectClause.BrowsePath[i].NamespaceIndex).Append(':');
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    sb.Append('/');
-                                }
-                                sb.Append(selectClause.BrowsePath[i].Name);
-                            }
+                            // Format as relative path string
+                            fieldName = selectClause.BrowsePath
+                                .Select(q => q.AsString(session.MessageContext, Template.NamespaceFormat))
+                                .Aggregate((a, b) => $"{a}/{b}");
                         }
 
-                        if (sb.Length == 0 && selectClause.TypeDefinitionId == ObjectTypeIds.ConditionType &&
-                                selectClause.AttributeId == Attributes.NodeId)
+                        if (fieldName.Length == 0 &&
+                            selectClause.TypeDefinitionId == ObjectTypeIds.ConditionType &&
+                            selectClause.AttributeId == Attributes.NodeId)
                         {
-                            sb.Append("ConditionId");
+                            fieldName = "ConditionId";
                         }
-                        Fields.Add((sb.ToString(), Guid.NewGuid()));
+                        Fields.Add((fieldName, Guid.NewGuid()));
                     }
                     else
                     {
@@ -1566,6 +1548,29 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
                     }
                 }
                 Debug.Assert(Fields.Count == eventFilter.SelectClauses.Count);
+            }
+
+            /// <summary>
+            /// Get event filter
+            /// </summary>
+            /// <param name="session"></param>
+            /// <param name="selectClauses"></param>
+            /// <returns></returns>
+            protected EventFilter GetEventFilter(IOpcUaSession session, out List<SimpleAttributeOperand> selectClauses)
+            {
+                var eventFilter = !string.IsNullOrEmpty(Template.EventFilter.TypeDefinitionId)
+                    ? GetSimpleEventFilter(session) : session.Codec.Decode(Template.EventFilter);
+                TestWhereClause(session, eventFilter);
+
+                // let's keep track of the internal fields we add so that they don't show up in the output
+                selectClauses = new List<SimpleAttributeOperand>();
+                if (!eventFilter.SelectClauses.Any(x => x.TypeDefinitionId == ObjectTypeIds.BaseEventType
+                    && x.BrowsePath?.FirstOrDefault() == BrowseNames.EventType))
+                {
+                    var selectClause = new SimpleAttributeOperand(ObjectTypeIds.BaseEventType, BrowseNames.EventType);
+                    eventFilter.SelectClauses.Add(selectClause);
+                    selectClauses.Add(selectClause);
+                }
                 return eventFilter;
             }
 
@@ -1574,7 +1579,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// </summary>
             /// <param name="session"></param>
             /// <returns></returns>
-            protected EventFilter GetSimpleEventFilter(IOpcUaSession session)
+            private EventFilter GetSimpleEventFilter(IOpcUaSession session)
             {
                 Debug.Assert(Template != null);
                 var typeDefinitionId = Template.EventFilter.TypeDefinitionId.ToNodeId(
@@ -1638,7 +1643,7 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// </summary>
             /// <param name="session"></param>
             /// <param name="eventFilter"></param>
-            protected void TestWhereClause(IOpcUaSession session, EventFilter eventFilter)
+            private void TestWhereClause(IOpcUaSession session, EventFilter eventFilter)
             {
                 if (eventFilter.WhereClause != null)
                 {
@@ -1988,81 +1993,12 @@ QueueSize {CurrentQueueSize}/{QueueSize}",
             /// <returns></returns>
             protected override EventFilter GetEventFilter(IOpcUaSession session)
             {
-                Debug.Assert(Template != null);
-
-                var eventFilter = !string.IsNullOrEmpty(Template.EventFilter.TypeDefinitionId)
-                    ? GetSimpleEventFilter(session) : session.Codec.Decode(Template.EventFilter);
-                TestWhereClause(session, eventFilter);
-
-                // let's keep track of the internal fields we add so that they don't show up in the output
-                var internalSelectClauses = new List<SimpleAttributeOperand>();
-                if (!eventFilter.SelectClauses.Any(x => x.TypeDefinitionId == ObjectTypeIds.BaseEventType
-                    && x.BrowsePath?.FirstOrDefault() == BrowseNames.EventType))
-                {
-                    var selectClause = new SimpleAttributeOperand(ObjectTypeIds.BaseEventType, BrowseNames.EventType);
-                    eventFilter.SelectClauses.Add(selectClause);
-                    internalSelectClauses.Add(selectClause);
-                }
+                var eventFilter = GetEventFilter(session, out var internalSelectClauses);
 
                 var conditionHandlingState = InitializeConditionHandlingState(
                     eventFilter, internalSelectClauses);
 
-                var sb = new StringBuilder();
-                // let's loop thru the final set of select clauses and setup the field names used
-                Fields.Clear();
-                foreach (var selectClause in eventFilter.SelectClauses)
-                {
-                    if (!internalSelectClauses.Any(x => x == selectClause))
-                    {
-                        sb.Clear();
-                        var definedSelectClause = Template.EventFilter.SelectClauses?
-                            .ElementAtOrDefault(eventFilter.SelectClauses.IndexOf(selectClause));
-                        if (!string.IsNullOrEmpty(definedSelectClause?.DisplayName))
-                        {
-                            sb.Append(definedSelectClause.DisplayName);
-                        }
-                        else
-                        {
-                            for (var i = 0; i < selectClause.BrowsePath?.Count; i++)
-                            {
-                                if (i == 0)
-                                {
-                                    if (selectClause.BrowsePath[i].NamespaceIndex != 0)
-                                    {
-                                        if (selectClause.BrowsePath[i].NamespaceIndex < session.NodeCache.NamespaceUris.Count)
-                                        {
-                                            sb
-                                                .Append(session.NodeCache.NamespaceUris.GetString(selectClause.BrowsePath[i].NamespaceIndex))
-                                                .Append('#');
-                                        }
-                                        else
-                                        {
-                                            sb.Append(selectClause.BrowsePath[i].NamespaceIndex).Append(':');
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    sb.Append('/');
-                                }
-                                sb.Append(selectClause.BrowsePath[i].Name);
-                            }
-                        }
-
-                        if (sb.Length == 0 && selectClause.TypeDefinitionId == ObjectTypeIds.ConditionType &&
-                                selectClause.AttributeId == Attributes.NodeId)
-                        {
-                            sb.Append("ConditionId");
-                        }
-                        Fields.Add((sb.ToString(), Guid.NewGuid()));
-                    }
-                    else
-                    {
-                        // if a field's nameis empty, it's not written to the output
-                        Fields.Add((null, Guid.Empty));
-                    }
-                }
-                Debug.Assert(Fields.Count == eventFilter.SelectClauses.Count);
+                UpdateFieldNames(session, eventFilter, internalSelectClauses);
 
                 _conditionHandlingState = conditionHandlingState;
                 _conditionTimer.Change(1000, Timeout.Infinite);

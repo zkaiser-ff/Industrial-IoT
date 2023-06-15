@@ -29,7 +29,8 @@ Here you find information about
     - [Advanced event filter configuration](#advanced-event-filter-configuration)
     - [Condition handling options](#condition-handling-options)
 - [OPC Publisher Telemetry Formats](#opc-publisher-telemetry-formats)
-- [Programming OPC Publisher using the OPC Publisher API](#programming-opc-publisher-using-the-opc-publisher-api)
+- [Programming against OPC Publisher using the OPC Publisher API](#programming-against-opc-publisher-using-the-opc-publisher-api)
+  - [JSON encoding](#json-encoding)
   - [Discovering OPC UA servers with OPC Publisher](#discovering-opc-ua-servers-with-opc-publisher)
     - [Discovery Configuration](#discovery-configuration)
     - [One-time discovery](#one-time-discovery)
@@ -794,7 +795,7 @@ All versions of OPC Publisher also support a non-standard, simple JSON telemetry
 
 More detailed information about the supported message formats can be found [here](./messageformats.md)
 
-## Programming OPC Publisher using the OPC Publisher API
+## Programming against OPC Publisher using the OPC Publisher API
 
 OPC Publisher supports remote configuration through Azure IoT Hub [direct methods](./directmethods.md). In addition to the configuraton API, OPC Publisher 2.9 also supports additional [APIs](./api.md) and [a number of different transports](./transports.md) that can be used to receive messages or invoke these API services. The transports can be configured using the [command line arguments](./commandline.md). The API can be invoked through
 
@@ -803,6 +804,34 @@ OPC Publisher supports remote configuration through Azure IoT Hub [direct method
 - The same API can also be called via the **HTTP Server** built into OPC Publisher (Preview). The API supports browse and historian access streaming, which the other transports do not provide. All calls must be authenticated through an API Key which must be provided as a bearer token. The API key is generated at start up and can be read from the OPC Publisher module's module twin.
 
 - The API can also be invoked through **MQTT v5 RPC calls** (Preview). The API is mounted on top of the method template (configured using the `--mtt` [command line argument](./commandline.md)). The method name follows the topic. The caller provides the topic that receives the response in the topic specified in the corresonding MQTTv5 PUBLISH packet property.
+
+### JSON encoding
+
+The REST API uses OPC UA JSON reversible encoding as per standard defined in [OPC UA](../readme.md#what-is-opc-ua) specification 1.04, Part 6, with the exception that default scalar values and `null` values are not encoded except when inside of an array.  A missing value implies `null` or the default of the scalar data type.  
+
+In addition to the standard string encoding using a namespace `Index` (e.g. `ns=4;i=3`) or the `Expanded` format (e.g. `nsu=http://opcfoundation.org/UA/;i=3523`) OPC Publisher also supports the use of `Uri` encoded Node Ids and Qualfied Names (see [RFC 3986](http://tools.ietf.org/html/rfc3986)).
+
+```bash
+<namespace-uri>#<id-type>=<URL-encoded-id-value>
+```
+
+Examples are: `http://opcfoundation.org/UA/#i=3523` or `http://opcfoundation.org/UA/#s=tag1`.
+
+Qualified Names are encoded as a single string the same way as Node Ids, where the name is the ID element of the URI. Examples of qualified names are in `Uri` format e.g. `http://opcfoundation.org/UA/#Browse%20Name`, in `Expanded` format `nsu=http://microsoft.com/;Browse%20Name` and in `Index` format this would be `3:Browse%20Name`.
+
+While the API supports any input format for qualified names (e.g., in browse paths) or node ids, you can select the desired output namespace format through the [header in the request](./definitions.md#requestheadermodel) and its property `NamespaceFormat`.  You can also set a default on the [command line](./commandline.md) using `--nf`. If the publisher is started in `--strict` the namespace format is `Expanded`, otherwise defaults to `Uri`.
+
+Non Uri namespace Uri's must always be encoded using the `Index` or `Expanded` syntax (e.g. `nsu=taglist;i=3523`). Expanded Node Identifiers should be encoded using the OPC UA `Index` or `Expanded` syntax (e.g. `svu=opc.tcp://test;nsu=http://opcfoundation.org/UA/;i=3523`).  In the `Uri` format case the server URI is appended as
+
+```bash
+<namespace-uri>&srv=<URL-encoded-server-uri>#<id-type>=<URL-encoded-id-value>
+```
+
+While not always enforced, ensure you **URL encode** the id value or name of Qualified Names, Node Ids and Expanded Node Ids.
+
+All *primitive built-in* values (`integer`, `string`, `int32`, `double`, etc.) and *Arrays* of them can be passed as JSON encoded Variant objects (as per standard) or as JSON Token.  The twin module attempts to coerce the JSON Token in the payload to the expected built-in type of the Variable or Input argument.
+
+The decoder will match JSON variable names case-**in**sensitively.  This means you can write a JSON object property name as `"tyPeiD": ""`, `"typeid": ""`, or `"TYPEID": ""` and all are decoded into a OPC UA structure's `"TypeId"` member.
 
 ### Discovering OPC UA servers with OPC Publisher
 
@@ -863,7 +892,7 @@ Example use cases:
 - A customer wants to browse an OPC UA server’s information model/address space for telemetry selection.
 - An industrial solution wants to react on a condition detected in an asset by changing a configuration parameter in the asset.
 
-The API enables you to write applications that invoke OPC UA server functionality on OPC server endpoints. The Payload is transcoded from JSON to OPC UA binary and passed on through the OPC UA stack to the OPC UA server.  The response is reencoded to JSON and passed back to the cloud service. This includes [Variant](../json.md) encoding and decoding in a consistent JSON format.
+The API enables you to write applications that invoke OPC UA server functionality on OPC server endpoints. The Payload is transcoded from JSON to OPC UA binary and passed on through the OPC UA stack to the OPC UA server.  The response is reencoded to JSON and passed back to the cloud service. This includes [Variant](#json-encoding) encoding and decoding in a consistent JSON format.
 
 Payloads that are larger than the Azure IoT Hub supported Device Method payload size are chunked, compressed, sent, then decompressed and reassembled for both request and response. This allows fast and large value writes and reads, as well as returning large browse results.  
 

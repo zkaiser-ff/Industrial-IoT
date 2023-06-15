@@ -486,11 +486,11 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                     }
                     foreach (var result in results)
                     {
-                        string? resolvedId = null;
+                        var resolvedId = NodeId.Null;
                         if (result.ErrorInfo == null && result.Result.Targets.Count == 1)
                         {
-                            resolvedId = result.Result.Targets[0].TargetId.AsString(
-                                sessionHandle.MessageContext);
+                            resolvedId = result.Result.Targets[0].TargetId.ToNodeId(
+                                sessionHandle.MessageContext.NamespaceUris);
                         }
                         else
                         {
@@ -498,7 +498,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                                 "in {Subscription} due to '{ServiceResult}'",
                                 result.Request!.Value.NodeId, this, result.ErrorInfo);
                         }
-                        result.Request!.Value.Updater(resolvedId ?? string.Empty);
+                        result.Request!.Value.Update(resolvedId, sessionHandle.MessageContext);
                     }
                 }
             }
@@ -526,10 +526,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                     foreach (var result in response.RegisteredNodeIds.Zip(registrations))
                     {
                         Debug.Assert(result.Second != null);
-                        var registeredId = result.First.AsString(sessionHandle.MessageContext);
-                        if (registeredId != null)
+                        if (!NodeId.IsNull(result.First))
                         {
-                            result.Second.Value.Updater(registeredId);
+                            result.Second.Value.Update(result.First, sessionHandle.MessageContext);
                         }
                     }
                 }
@@ -711,7 +710,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                                     "in {Subscription} due to '{ServiceResult}'",
                                     result.Request!.Value.NodeId, this, result.ErrorInfo);
                             }
-                            result.Request!.Value.Updater(displayName ?? string.Empty);
+                            result.Request!.Value.Update(displayName ?? string.Empty);
                         }
                     }
                 }

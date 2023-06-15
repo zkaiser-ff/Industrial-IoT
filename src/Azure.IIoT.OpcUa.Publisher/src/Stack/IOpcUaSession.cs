@@ -75,17 +75,19 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         /// <summary>
         /// Get history capabilities of the server
         /// </summary>
+        /// <param name="namespaceFormat"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
         ValueTask<HistoryServerCapabilitiesModel> GetHistoryCapabilitiesAsync(
-            CancellationToken ct = default);
+            NamespaceFormat namespaceFormat, CancellationToken ct = default);
 
         /// <summary>
         /// Get server capabilities
         /// </summary>
+        /// <param name="namespaceFormat"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
         ValueTask<ServerCapabilitiesModel> GetServerCapabilitiesAsync(
-            CancellationToken ct = default);
+            NamespaceFormat namespaceFormat, CancellationToken ct = default);
     }
 }
