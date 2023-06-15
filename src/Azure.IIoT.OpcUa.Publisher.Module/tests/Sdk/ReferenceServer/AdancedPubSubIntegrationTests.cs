@@ -31,7 +31,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         public async Task SwitchServerWithSameWriterGroupTest()
         {
             var server = new ReferenceServer();
-            ServerPort = server.Port;
+            EndpointUrl = server.EndpointUrl;
 
             const string name = nameof(SwitchServerWithSameWriterGroupTest);
             StartPublisher(name, "./Resources/DataItems.json", arguments: new string[] { "--mm=PubSub" });
@@ -56,7 +56,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
                 // Switch to new server
                 var old = server;
                 server = new ReferenceServer();
-                ServerPort = server.Port;
+                EndpointUrl = server.EndpointUrl;
                 old?.Dispose();
 
                 // Point to new server
@@ -89,7 +89,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         public async Task SwitchServerWithDifferentWriterGroupTest()
         {
             var server = new ReferenceServer();
-            ServerPort = server.Port;
+            EndpointUrl = server.EndpointUrl;
             const string name = nameof(SwitchServerWithDifferentWriterGroupTest);
             StartPublisher(name, "./Resources/DataItems2.json", arguments: new string[] { "--mm=PubSub" });
             try
@@ -113,7 +113,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
                 // Switch to new server
                 var old = server;
                 server = new ReferenceServer();
-                ServerPort = server.Port;
+                EndpointUrl = server.EndpointUrl;
                 old?.Dispose();
 
                 // Point to new server
@@ -157,7 +157,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         public async Task AddNodeToDataSetWriterGroupWithNodeUsingDeviceMethod(bool differentPublishingInterval)
         {
             var server = new ReferenceServer();
-            ServerPort = server.Port;
+            EndpointUrl = server.EndpointUrl;
             const string name = nameof(AddNodeToDataSetWriterGroupWithNodeUsingDeviceMethod);
             var testInput1 = GetEndpointsFromFile(name, "./Resources/DataItems.json");
             var testInput2 = GetEndpointsFromFile(name, "./Resources/DataItems2.json");
@@ -229,7 +229,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         public async Task SwitchServerWithDifferentDataTest()
         {
             var server = new ReferenceServer();
-            ServerPort = server.Port;
+            EndpointUrl = server.EndpointUrl;
             const string name = nameof(SwitchServerWithDifferentDataTest);
             StartPublisher(name, "./Resources/DataItems.json", arguments: new string[] { "--mm=PubSub" });
             try
@@ -261,7 +261,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
                 // Switch to different server
                 var old = server;
                 server = new ReferenceServer();
-                ServerPort = server.Port;
+                EndpointUrl = server.EndpointUrl;
                 old?.Dispose();
 
                 // Point to new server
@@ -295,7 +295,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         public async Task RestartConfigurationTest()
         {
             var server = new ReferenceServer();
-            ServerPort = server.Port;
+            EndpointUrl = server.EndpointUrl;
             for (var cycles = 0; cycles < 5; cycles++)
             {
                 const string name = nameof(RestartConfigurationTest);

@@ -34,6 +34,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
             {
                 return false;
             }
+            if (that.IsReverse != model.IsReverse)
+            {
+                return false;
+            }
             if (!that.Endpoint.IsSameAs(model.Endpoint))
             {
                 return false;
@@ -65,6 +69,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
                 EqualityComparer<string>.Default.GetHashCode(model.Diagnostics?.AuditId ?? string.Empty);
             hashCode = (hashCode * -1521134295) +
                 EqualityComparer<string>.Default.GetHashCode(model.Group ?? string.Empty);
+            hashCode = (hashCode * -1521134295) +
+                EqualityComparer<bool>.Default.GetHashCode(model.IsReverse);
             return hashCode;
         }
 

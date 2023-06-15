@@ -1,15 +1,16 @@
 ﻿[
     {
         "EndpointUrl": "{{EndpointUrl}}",
+        "UseReverseConnect": "{{UseReverseConnect}}",
         "UseSecurity": false,
         "DataSetWriterGroup": "{{DataSetWriterGroup}}",
         "OpcNodes": [
             {
                 "Id": "ns=23;i=1259",
-                "OpcSamplingInterval": 200,
-                "OpcPublishingInterval": 200,
-                "DisplayName": "Output",
-                "SkipFirst": true
+                "OpcSamplingInterval": 500,
+                "FetchDisplayName": true,
+                "RegisterNode": true,
+                "UseCyclicRead": true
             }
         ]
     }

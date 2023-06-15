@@ -292,9 +292,8 @@ Options:
                             var publishedNodesFilePath = Path.GetTempFileName();
 
                             File.WriteAllText(publishedNodesFilePath,
-                                File.ReadAllText(publishedNodesFile).Replace("{{Port}}",
-                                server.Port.ToString(CultureInfo.InvariantCulture),
-                                StringComparison.Ordinal));
+                                File.ReadAllText(publishedNodesFile).Replace("{{EndpointUrl}}",
+                                    $"opc.tcp://localhost:{server.Port}/UA/SampleServer", StringComparison.Ordinal));
 
                             args = args.Concat(new[]
                             {

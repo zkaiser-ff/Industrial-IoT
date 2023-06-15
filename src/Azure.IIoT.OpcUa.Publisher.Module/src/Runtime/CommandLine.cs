@@ -275,6 +275,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Runtime
                 { $"cl|clientlinger=|{OpcUaClientConfig.LingerTimeoutKey}=",
                     "Amount of time in seconds to delay closing a client and underlying session after the a last service call.\nUse this setting to speed up multiple subsequent calls to a server.\nDefault: `0` sec (no linger).\n",
                     (uint u) => this[OpcUaClientConfig.LingerTimeoutKey] = u.ToString(CultureInfo.CurrentCulture) },
+                { $"rcp|reverseconnectport=|{OpcUaClientConfig.ReverseConnectPortKey}=",
+                    $"The port to use when accepting inbound reverse connect requests from servers.\nDefault: `{OpcUaClientConfig.ReverseConnectPortDefault}`.\n",
+                    (ushort u) => this[OpcUaClientConfig.ReverseConnectPortKey] = u.ToString(CultureInfo.CurrentCulture) },
+
                 { $"smi|subscriptionmanagementinterval=|{OpcUaClientConfig.SubscriptionManagementIntervalKey}=",
                     "The interval in seconds after which the publisher re-applies the desired state of the subscription to a session.\nDefault: `never` (only on configuration change).\n",
                     (int i) => this[OpcUaClientConfig.SubscriptionManagementIntervalKey] = TimeSpan.FromSeconds(i).ToString() },

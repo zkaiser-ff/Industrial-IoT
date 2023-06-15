@@ -190,6 +190,13 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
         public TimeSpan? BatchTriggerIntervalTimespan { get; set; }
 
         /// <summary>
+        /// Use reverse connect to connect ot the endpoint
+        /// </summary>
+        [DataMember(Name = "UseReverseConnect", Order = 25,
+            EmitDefaultValue = false)]
+        public bool UseReverseConnect { get; set; }
+
+        /// <summary>
         /// The writer group transport to use
         /// </summary>
         [DataMember(Name = "WriterGroupTransport", Order = 29,

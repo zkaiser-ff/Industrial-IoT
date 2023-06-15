@@ -61,6 +61,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Config.Models
                 OpcAuthenticationPassword = model.User.GetPassword(),
                 OpcAuthenticationUsername = model.User.GetUserName(),
                 DataSetWriterGroup = model.Group,
+                UseReverseConnect = model.IsReverse,
                 MessageEncoding = MessageEncoding.Json,
                 MessagingMode = MessagingMode.FullSamples,
                 OpcNodes = new List<OpcNodeModel>()
@@ -85,6 +86,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Config.Models
                 return false;
             }
             if (model.EndpointUrl != that.EndpointUrl)
+            {
+                return false;
+            }
+            if (model.UseReverseConnect != that.UseReverseConnect)
             {
                 return false;
             }
@@ -132,34 +137,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Config.Models
             {
                 return null;
             }
-            return new PublishedNodesEntryModel
+            return model with
             {
-                DataSetClassId = model.DataSetClassId,
-                DataSetDescription = model.DataSetDescription,
-                DataSetKeyFrameCount = model.DataSetKeyFrameCount,
-                DataSetName = model.DataSetName,
-                DataSetPublishingInterval = model.DataSetPublishingInterval,
-                DataSetPublishingIntervalTimespan = model.DataSetPublishingIntervalTimespan,
-                DataSetWriterGroup = model.DataSetWriterGroup,
-                DataSetWriterId = model.DataSetWriterId,
-                EncryptedAuthUsername = model.EncryptedAuthUsername,
-                EndpointUrl = model.EndpointUrl,
-                MetaDataUpdateTime = model.MetaDataUpdateTime,
-                MetaDataUpdateTimeTimespan = model.MetaDataUpdateTimeTimespan,
-                SendKeepAliveDataSetMessages = model.SendKeepAliveDataSetMessages,
-                LastChangeTimespan = model.LastChangeTimespan,
-                Priority = model.Priority,
-                MaxKeepAliveCount = model.MaxKeepAliveCount,
-                OpcAuthenticationUsername = model.OpcAuthenticationUsername,
-                OpcAuthenticationMode = model.OpcAuthenticationMode,
-                UseSecurity = model.UseSecurity,
-                Version = model.Version,
-                MessageEncoding = model.MessageEncoding,
-                MessagingMode = model.MessagingMode,
-                WriterGroupTransport = model.WriterGroupTransport,
-                BatchSize = model.BatchSize,
-                BatchTriggerInterval = model.BatchTriggerInterval,
-                BatchTriggerIntervalTimespan = model.BatchTriggerIntervalTimespan,
                 NodeId = null,
                 EncryptedAuthPassword = null,
                 OpcAuthenticationPassword = null,

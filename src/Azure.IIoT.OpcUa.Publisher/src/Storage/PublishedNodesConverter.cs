@@ -288,6 +288,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
                                 Endpoint = group.Key.Endpoint.Clone(),
                                 User = group.Key.User.Clone(),
                                 Diagnostics = group.Key.Diagnostics.Clone(),
+                                IsReverse = group.Key.IsReverse,
                                 Group = group.Key.Group
                             },
                             SubscriptionSettings = new PublishedDataSetSettingsModel
@@ -396,7 +397,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
                                         Endpoint = dataSet.Source.Connection?.Endpoint.Clone(),
                                         User = dataSet.Source.Connection?.User.Clone(),
                                         Diagnostics = dataSet.Source.Connection?.Diagnostics.Clone(),
-                                        Group = dataSet.Source.Connection?.Group
+                                        Group = dataSet.Source.Connection?.Group,
+                                        IsReverse = dataSet.Source.Connection?.IsReverse ?? false
                                     },
                                     PublishedEvents = dataSet.Source.PublishedEvents.Clone(),
                                     PublishedVariables = dataSet.Source.PublishedVariables.Clone(),
@@ -451,6 +453,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
             return new ConnectionModel
             {
                 Group = model.DataSetWriterGroup,
+                IsReverse = model.UseReverseConnect,
                 Endpoint = new EndpointModel
                 {
                     Url = model.EndpointUrl,

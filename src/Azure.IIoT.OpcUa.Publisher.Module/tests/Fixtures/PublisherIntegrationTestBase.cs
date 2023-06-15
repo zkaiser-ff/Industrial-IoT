@@ -24,6 +24,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Fixtures
     using System.Threading.Tasks;
     using Xunit;
     using Xunit.Abstractions;
+    using Microsoft.AspNetCore.Hosting.Server;
 
     /// <summary>
     /// Json message
@@ -39,7 +40,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Fixtures
     /// </summary>
     public class PublisherIntegrationTestBase : IDisposable
     {
-        protected int ServerPort { get; set; }
+        protected string EndpointUrl { get; set; }
         protected CancellationToken Ct => _cts.Token;
 
         /// <summary>
@@ -296,18 +297,28 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Fixtures
         /// <param name="publishedNodesFile"></param>
         /// <param name="arguments"></param>
         /// <param name="version"></param>
+        /// <param name="useReverseConnect"></param>
         protected void StartPublisher(string test, string publishedNodesFile = null,
-            string[] arguments = default, MqttVersion? version = null)
+            string[] arguments = default, MqttVersion? version = null, int? reverseConnectPort = null)
         {
             arguments ??= Array.Empty<string>();
             _publishedNodesFilePath = Path.GetTempFileName();
-            WritePublishedNodes(test, publishedNodesFile);
+            WritePublishedNodes(test, publishedNodesFile, reverseConnectPort != null);
 
             arguments = arguments.Concat(
                 new[]
                 {
                     $"--pf={_publishedNodesFilePath}"
                 }).ToArray();
+
+            if (reverseConnectPort != null)
+            {
+                arguments = arguments.Concat(
+                    new[]
+                    {
+                        $"--rcp={reverseConnectPort.Value}"
+                    }).ToArray();
+            }
 
             _publisher = new PublisherModule(null, null, null, null,
                 _testOutputHelper, arguments, version);
@@ -318,13 +329,14 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Fixtures
         /// </summary>
         /// <param name="test"></param>
         /// <param name="publishedNodesFile"></param>
-        protected void WritePublishedNodes(string test, string publishedNodesFile)
+        /// <param name="useReverseConnect"></param>
+        protected void WritePublishedNodes(string test, string publishedNodesFile, bool useReverseConnect = false)
         {
             if (!string.IsNullOrEmpty(publishedNodesFile))
             {
-                File.WriteAllText(_publishedNodesFilePath,
-                    File.ReadAllText(publishedNodesFile)
-                    .Replace("{{Port}}", ServerPort.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
+                File.WriteAllText(_publishedNodesFilePath, File.ReadAllText(publishedNodesFile)
+                    .Replace("\"{{UseReverseConnect}}\"", useReverseConnect ? "true" : "false", StringComparison.Ordinal)
+                    .Replace("{{EndpointUrl}}", EndpointUrl, StringComparison.Ordinal)
                     .Replace("{{DataSetWriterGroup}}", test, StringComparison.Ordinal));
             }
         }
@@ -356,12 +368,15 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Fixtures
         /// </summary>
         /// <param name="test"></param>
         /// <param name="publishedNodesFile"></param>
+        /// <param name="useReverseConnect"></param>
         /// <returns></returns>
-        protected PublishedNodesEntryModel[] GetEndpointsFromFile(string test, string publishedNodesFile)
+        protected PublishedNodesEntryModel[] GetEndpointsFromFile(string test, string publishedNodesFile,
+            bool useReverseConnect = false)
         {
             IJsonSerializer serializer = new NewtonsoftJsonSerializer();
             var fileContent = File.ReadAllText(publishedNodesFile)
-                .Replace("{{Port}}", ServerPort.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
+                .Replace("\"{{UseReverseConnect}}\"", useReverseConnect ? "true" : "false", StringComparison.Ordinal)
+                .Replace("{{EndpointUrl}}", EndpointUrl, StringComparison.Ordinal)
                 .Replace("{{DataSetWriterGroup}}", test, StringComparison.Ordinal);
             return serializer.Deserialize<PublishedNodesEntryModel[]>(fileContent);
         }

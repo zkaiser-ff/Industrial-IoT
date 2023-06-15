@@ -106,7 +106,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Sample
         }
 
         /// <inheritdoc/>
-        private sealed class Server : StandardServer
+        private sealed class Server : ReverseConnectServer
         {
             /// <summary>
             /// Create server
@@ -217,6 +217,13 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Sample
                         },
                         SupportedPrivateKeyFormats = new StringCollection {
                             "PFX", "PEM"
+                        },
+
+                        ReverseConnect = new ReverseConnectServerConfiguration
+                        {
+                            ConnectInterval = 1000,
+                             ConnectTimeout = 5000,
+                              RejectTimeout = 5000
                         },
 
                         NodeManagerSaveFile = "nodes.xml",

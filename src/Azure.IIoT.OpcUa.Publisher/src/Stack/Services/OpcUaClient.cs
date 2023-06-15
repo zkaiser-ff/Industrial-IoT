@@ -78,6 +78,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         /// <param name="metrics"></param>
         /// <param name="notifier"></param>
         /// <param name="sessionFactory"></param>
+        /// <param name="reverseConnectManager"></param>
         /// <param name="maxReconnectPeriod"></param>
         /// <param name="sessionName"></param>
         /// <exception cref="ArgumentNullException"></exception>
@@ -85,14 +86,16 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             ConnectionIdentifier connection, IJsonSerializer serializer,
             ILoggerFactory loggerFactory, IMetricsContext metrics,
             EventHandler<EndpointConnectivityState>? notifier,
-            ISessionFactory sessionFactory, TimeSpan? maxReconnectPeriod = null,
-            string? sessionName = null)
+            ISessionFactory sessionFactory, ReverseConnectManager reverseConnectManager,
+            TimeSpan? maxReconnectPeriod = null, string? sessionName = null)
         {
-            if (connection?.Connection?.Endpoint == null)
+            if (connection?.Connection?.Endpoint?.Url == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
             _connection = connection.Connection;
+            _reverseConnectManager = _connection.IsReverse ?
+                reverseConnectManager : null;
 
             _metrics = metrics ??
                 throw new ArgumentNullException(nameof(metrics));
@@ -244,6 +247,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to close client {Client}.", this);
+            }
+            finally
+            {
+                _reverseConnectManager?.Dispose();
             }
         }
 
@@ -623,7 +630,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
 
                                     _logger.LogInformation("Reconnecting session {Session}...", _sessionName);
                                     var state = _reconnectHandler.BeginReconnect(_session!.Session,
-                                        GetMinReconnectPeriod(), (sender, evt) =>
+                                        _reverseConnectManager, GetMinReconnectPeriod(), (sender, evt) =>
                                         {
                                             if (ReferenceEquals(sender, _reconnectHandler))
                                             {
@@ -822,8 +829,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             var timeout = CreateSessionTimeout ?? TimeSpan.FromSeconds(10);
 
             NotifyConnectivityStateChange(EndpointConnectivityState.Connecting);
+            Debug.Assert(_connection.Endpoint != null);
 
-            var endpointUrlCandidates = _connection.Endpoint!.Url.YieldReturn();
+            var endpointUrlCandidates = _connection.Endpoint.Url!.YieldReturn();
             if (_connection.Endpoint.AlternativeUrls != null)
             {
                 endpointUrlCandidates = endpointUrlCandidates.Concat(
@@ -840,13 +848,22 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                 ct.ThrowIfCancellationRequested();
                 try
                 {
+                    ITransportWaitingConnection? connection = null;
+                    if (_reverseConnectManager != null)
+                    {
+                        connection = await _reverseConnectManager.WaitForConnection(
+                            new Uri(endpointUrl), null, ct).ConfigureAwait(false);
+                    }
                     //
                     // Get the endpoint by connecting to server's discovery endpoint.
                     // Try to find the first endpoint with security.
                     //
-                    var endpointDescription = CoreClientUtils.SelectEndpoint(
-                        _configuration, endpointUrl,
-                        _connection.Endpoint.SecurityMode != SecurityMode.None);
+                    var endpointDescription = connection != null ?
+                        CoreClientUtils.SelectEndpoint(_configuration, connection,
+                            _connection.Endpoint.SecurityMode != SecurityMode.None) :
+                        CoreClientUtils.SelectEndpoint(_configuration, endpointUrl,
+                            _connection.Endpoint.SecurityMode != SecurityMode.None);
+
                     var endpointConfiguration = EndpointConfiguration.Create(
                         _configuration);
                     endpointConfiguration.OperationTimeout =
@@ -880,11 +897,11 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
 
                     var sessionTimeout = SessionTimeout ?? TimeSpan.FromSeconds(30);
                     var session = await _sessionFactory.CreateAsync(_configuration,
-                        reverseConnectManager: null, endpoint,
-                        updateBeforeConnect: false, // Udpate endpoint through discovery
+                        _reverseConnectManager, endpoint,
+                        // Update endpoint through discovery
+                        updateBeforeConnect: _reverseConnectManager != null,
                         checkDomain: false, // Domain must match on connect
-                        _sessionName,
-                        (uint)sessionTimeout.TotalMilliseconds,
+                        _sessionName, (uint)sessionTimeout.TotalMilliseconds,
                         userIdentity, preferredLocales, ct).ConfigureAwait(false);
                     // Assign the created session
                     var isNew = await UpdateSessionAsync(session).ConfigureAwait(false);
@@ -1384,6 +1401,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         private int _numberOfConnectRetries;
         private bool _disposed;
         private int _refCount;
+        private readonly ReverseConnectManager? _reverseConnectManager;
         private readonly ISessionFactory _sessionFactory;
         private readonly AsyncReaderWriterLock _lock = new();
         private readonly ApplicationConfiguration _configuration;
