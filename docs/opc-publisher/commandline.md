@@ -444,6 +444,11 @@ Subscription settings
                                periodical client reads instead of subscriptions
                                services, unless otherwise configured.
                                Default: `false`.
+      --urc, --usereverseconnect, --DefaultUseReverseConnect[=VALUE]
+                             (Experimental) Use reverse connect for all
+                               endpoints that are part of the subscription
+                               configuration unless otherwise configured.
+                               Default: `false`.
 
 OPC UA Client configuration
 ---------------------------
@@ -491,6 +496,10 @@ OPC UA Client configuration
                                Use this setting to speed up multiple subsequent
                                calls to a server.
                                Default: `0` sec (no linger).
+      --rcp, --reverseconnectport, --ReverseConnectPort=VALUE
+                             The port to use when accepting inbound reverse
+                               connect requests from servers.
+                               Default: `4840`.
       --smi, --subscriptionmanagementinterval, --SubscriptionManagementInterval=VALUE
                              The interval in seconds after which the publisher
                                re-applies the desired state of the subscription

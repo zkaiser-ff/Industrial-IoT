@@ -47,6 +47,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
         /// </summary>
         [DataMember(Name = "isReverse", Order = 4,
              EmitDefaultValue = false)]
-        public bool IsReverse { get; set; }
+        public bool? IsReverse { get; set; }
     }
 }

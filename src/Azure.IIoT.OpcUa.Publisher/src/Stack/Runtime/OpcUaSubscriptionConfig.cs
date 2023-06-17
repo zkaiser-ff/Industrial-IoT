@@ -35,6 +35,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Runtime
         public const string MaxKeepAliveCountKey = "MaxKeepAliveCount";
         public const string UseDeferredAcknoledgementsKey = "UseDeferredAcknoledgements";
         public const string DefaultSamplingUsingCyclicReadKey = "DefaultSamplingUsingCyclicRead";
+        public const string DefaultUseReverseConnectKey = "DefaultUseReverseConnect";
 
         /// <summary>
         /// Default values
@@ -48,6 +49,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Runtime
         public const bool DefaultSamplingUsingCyclicReadDefault = false;
         public const bool UseDeferredAcknoledgementsDefault = false;
         public const bool DefaultDiscardNewDefault = false;
+
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         /// <inheritdoc/>
@@ -131,6 +133,11 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Runtime
                     out var trigger))
             {
                 options.DefaultDataChangeTrigger = trigger;
+            }
+
+            if (options.DefaultUseReverseConnect == null)
+            {
+                options.DefaultUseReverseConnect = GetBoolOrNull(DefaultUseReverseConnectKey);
             }
         }
 

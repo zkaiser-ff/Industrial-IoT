@@ -243,6 +243,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Runtime
                 { $"ucr|usecyclicreads:|{OpcUaSubscriptionConfig.DefaultSamplingUsingCyclicReadKey}:",
                     "(Experimental) All nodes should be sampled using periodical client reads instead of subscriptions services, unless otherwise configured.\nDefault: `false`.\n",
                     (bool? b) => this[OpcUaSubscriptionConfig.DefaultSamplingUsingCyclicReadKey] = b?.ToString() ?? "True" },
+                { $"urc|usereverseconnect:|{OpcUaSubscriptionConfig.DefaultUseReverseConnectKey}:",
+                    "(Experimental) Use reverse connect for all endpoints that are part of the subscription configuration unless otherwise configured.\nDefault: `false`.\n",
+                    (bool? b) => this[OpcUaSubscriptionConfig.DefaultUseReverseConnectKey] = b?.ToString() ?? "True" },
 
                 "",
                 "OPC UA Client configuration",

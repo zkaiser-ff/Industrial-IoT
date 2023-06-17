@@ -76,6 +76,12 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         public bool? ResolveDisplayName { get; set; }
 
         /// <summary>
+        /// Always default to use or not use reverse connect
+        /// unless overridden by the configuration.
+        /// </summary>
+        public bool? DefaultUseReverseConnect { get; set; }
+
+        /// <summary>
         /// set the default queue size for monitored items. If not
         /// set the default queue size will be configured (1 for
         /// data monitored items, and 0 for event monitoring).

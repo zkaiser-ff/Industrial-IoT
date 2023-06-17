@@ -364,10 +364,11 @@ The configuration schema is used with the file based configuration, but also wit
 ```json
 {
   "EndpointUrl": "string",
-  "UseSecurity": "Boolean",
+  "UseSecurity": "bool",
   "OpcAuthenticationMode": "string",
   "UserName": "string",
   "Password": "string",
+  "UseReverseConnect": "bool",
   "DataSetWriterId": "string",
   "DataSetClassId": "Guid",
   "DataSetName": "string",
@@ -429,6 +430,7 @@ Each [published nodes entry model](./definitions.md#publishednodesentrymodel) ha
 | `LastChangeTimespan` | No | String | `null` | The time the Publisher configuration was last updated.<br>Read only and informational only. |
 | `EndpointUrl` | Yes | String | N/A | The OPC UA server endpoint URL |
 | `UseSecurity` | No | Boolean | `false` | Controls whether to use a secure OPC UA mode to establish a session to the OPC UA server endpoint |
+| `UseReverseConnect` | No | Boolean | `false` | Controls whether to use OPC UA reverse connect to connect to the OPC UA server.<br>A publisher wide default value can be set using the [command line](./commandline.md) |
 | `OpcAuthenticationMode` | No | Enum | `Anonymous` | Enum to specify the session authentication. <br>Options: `Anonymous`, `UsernamePassword` |
 | `UserName` | No | String | `null` | The username for the session authentication. <br>Mandatory if OpcAuthentication mode is `UsernamePassword`. |
 | `Password` | No | String | `null` | The password for the session authentication. <br>Mandatory if OpcAuthentication mode is `UsernamePassword`. |
@@ -562,6 +564,24 @@ By default OPC Publisher does use no user authentication (anonymous). However, O
 ```
 
 > OPC Publisher version 2.5 and below encrypts the username and password in the configuration file. Version 2.6 and above stores them in plain text.
+
+### Using OPC UA reverse connect
+
+You can let servers connect to OPC Publisher using the OPC UA reverse connect mode. This allows servers to connect to an OPC Publisher in a higher network layer with only an outbound port to be opened from the lower layer network. 
+
+Reverse connect mode can be enabled per endpoint in the published nodes configuration using the `UseReverseConnect` property. A publisher wide default for when this property is missing can be configured using the `--urc` command line option.
+
+> NOTE: Reverse connect is only supported for the opc.tcp scheme of endpoint urls. Reverse connecting other transports is not supported. If OPC Publisher cannot find a Url candidate to use it will try to establish a regular connection to any of the other candidate endpoints instead (see [ConnectionModel](./definitions.md#connectionmodel) for more information).
+
+OPC Publisher will listen for reverse connect requests on port 4840, unless a different port is configured through the `--rcp` command line option. You must open the port on the OPC Publisher docker container for external OPC UA servers to be able to access it. This must be done in the IoT Edge create options. Add a port bnding endtry for the respective container port and the host port you want to open:
+
+```json
+    "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"4840/tcp\":[{\"HostPort\":\"4840\"}],  ...
+```
+
+By default OPC Publisher opens the outbound port only when the first reverse connection is requested either through the published nodes configuration, by making an API call that causes a reverse connection to be added to the configuration or required to complete the call.
+
+You can find more information in [OPC UA standard Part 6](https://reference.opcfoundation.org/v104/Core/docs/Part6/7.1.3/).
 
 ### Configuring event subscriptions
 

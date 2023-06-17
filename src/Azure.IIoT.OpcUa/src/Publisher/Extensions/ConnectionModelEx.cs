@@ -6,8 +6,11 @@
 namespace Azure.IIoT.OpcUa.Publisher.Models
 {
     using Furly.Extensions.Serializers;
+    using System;
     using System.Collections.Generic;
+    using System.Data.Common;
     using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
 
     /// <summary>
     /// Connection endpoint model extensions
@@ -54,6 +57,57 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
         }
 
         /// <summary>
+        /// Is this reverse connected
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <returns></returns>
+        public static bool IsReverseConnect(this ConnectionModel connection)
+        {
+            return connection.IsReverse == true && connection.GetEndpointUrls().Any();
+        }
+
+        /// <summary>
+        /// Get endpont urls to try from connection
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <returns></returns>
+        public static IEnumerable<Uri> GetEndpointUrls(this ConnectionModel connection)
+        {
+            if (connection.Endpoint?.Url == null)
+            {
+                return Enumerable.Empty<Uri>();
+            }
+            var endpoints = new Uri(connection.Endpoint.Url).YieldReturn();
+            if (connection.Endpoint.AlternativeUrls != null)
+            {
+                endpoints = endpoints.Concat(connection.Endpoint.AlternativeUrls
+                    .Where(u => !string.IsNullOrEmpty(u))
+                    .Select(u => new Uri(u)));
+            }
+            return endpoints.Where(u => connection.IsReverse != true ||
+                string.Equals(u.Scheme, "opc.tcp", // Only allow tcp scheme
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Throw if invalid
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="paramName"></param>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static void ThrowIfInvalid(this ConnectionModel? model, string paramName)
+        {
+            ArgumentNullException.ThrowIfNull(model, paramName);
+            // TODO: add more
+            if (!model.GetEndpointUrls().Any())
+            {
+                throw new ArgumentException("Missing endpoints in connection",
+                    paramName);
+            }
+        }
+
+        /// <summary>
         /// Create unique hash
         /// </summary>
         /// <param name="model"></param>
@@ -70,7 +124,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
             hashCode = (hashCode * -1521134295) +
                 EqualityComparer<string>.Default.GetHashCode(model.Group ?? string.Empty);
             hashCode = (hashCode * -1521134295) +
-                EqualityComparer<bool>.Default.GetHashCode(model.IsReverse);
+                EqualityComparer<bool>.Default.GetHashCode(model.IsReverse ?? false);
             return hashCode;
         }
 

@@ -109,8 +109,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                     return;
                 }
 
-                var dataSetWriterSubscriptionMap = writerGroup.DataSetWriters
-                    .ToDictionary(w => w.ToSubscriptionId(writerGroup.WriterGroupId), w => w);
+                var dataSetWriterSubscriptionMap = writerGroup.DataSetWriters.ToDictionary(
+                    w => w.ToSubscriptionId(writerGroup.WriterGroupId, _subscriptionConfig.Value),
+                    w => w);
                 // Update or removed ones that were updated or removed.
                 foreach (var id in _subscriptions.Keys.ToList())
                 {

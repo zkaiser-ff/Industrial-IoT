@@ -89,6 +89,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         public IOpcUaClient GetOrCreateClient(ConnectionModel connection)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            connection.ThrowIfInvalid(nameof(connection));
             return GetOrAddClient(connection);
         }
 
@@ -634,7 +635,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         private OpcUaClient GetOrAddClient(ConnectionModel connection)
         {
             // Lazy start connect manager
-            if (connection.IsReverse && _reverseConnectStartException.Value != null)
+            var reverseConnect = connection.IsReverseConnect();
+            if (reverseConnect && _reverseConnectStartException.Value != null)
             {
                 throw _reverseConnectStartException.Value;
             }
@@ -646,7 +648,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             {
                 var client = new OpcUaClient(_configuration.Result, id, _serializer,
                     _loggerFactory, _metrics, OnConnectionStateChange, _sessionFactory,
-                    _reverseConnectManager, _options.Value.MaxReconnectDelay)
+                    reverseConnect ? _reverseConnectManager : null,
+                    _options.Value.MaxReconnectDelay)
                 {
                     OperationTimeout = _options.Value.Quotas.OperationTimeout == 0 ? null :
                         TimeSpan.FromMilliseconds(_options.Value.Quotas.OperationTimeout),

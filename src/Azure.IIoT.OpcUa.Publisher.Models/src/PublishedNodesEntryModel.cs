@@ -194,7 +194,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
         /// </summary>
         [DataMember(Name = "UseReverseConnect", Order = 25,
             EmitDefaultValue = false)]
-        public bool UseReverseConnect { get; set; }
+        public bool? UseReverseConnect { get; set; }
 
         /// <summary>
         /// The writer group transport to use

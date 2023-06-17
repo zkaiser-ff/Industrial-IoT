@@ -86,16 +86,17 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             ConnectionIdentifier connection, IJsonSerializer serializer,
             ILoggerFactory loggerFactory, IMetricsContext metrics,
             EventHandler<EndpointConnectivityState>? notifier,
-            ISessionFactory sessionFactory, ReverseConnectManager reverseConnectManager,
+            ISessionFactory sessionFactory, ReverseConnectManager? reverseConnectManager,
             TimeSpan? maxReconnectPeriod = null, string? sessionName = null)
         {
             if (connection?.Connection?.Endpoint?.Url == null)
             {
                 throw new ArgumentNullException(nameof(connection));
             }
+
             _connection = connection.Connection;
-            _reverseConnectManager = _connection.IsReverse ?
-                reverseConnectManager : null;
+            Debug.Assert(_connection.GetEndpointUrls().Any());
+            _reverseConnectManager = reverseConnectManager;
 
             _metrics = metrics ??
                 throw new ArgumentNullException(nameof(metrics));
@@ -827,17 +828,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             NotifyConnectivityStateChange(EndpointConnectivityState.Connecting);
             Debug.Assert(_connection.Endpoint != null);
 
-            var endpointUrlCandidates = _connection.Endpoint.Url!.YieldReturn();
-            if (_connection.Endpoint.AlternativeUrls != null)
-            {
-                endpointUrlCandidates = endpointUrlCandidates.Concat(
-                    _connection.Endpoint.AlternativeUrls);
-            }
-
             _logger.LogInformation("Connecting Client {Client} to {EndpointUrl}...",
                 this, _connection.Endpoint.Url);
             var attempt = 0;
-            foreach (var endpointUrl in endpointUrlCandidates)
+            foreach (var endpointUrl in _connection.GetEndpointUrls())
             {
                 // Ensure any previous session is disposed here.
                 await CloseSessionAsync().ConfigureAwait(false);
@@ -848,7 +842,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                     if (_reverseConnectManager != null)
                     {
                         connection = await _reverseConnectManager.WaitForConnection(
-                            new Uri(endpointUrl), null, ct).ConfigureAwait(false);
+                            endpointUrl, null, ct).ConfigureAwait(false);
                     }
                     //
                     // Get the endpoint by connecting to server's discovery endpoint.
@@ -857,7 +851,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                     var endpointDescription = connection != null ?
                         CoreClientUtils.SelectEndpoint(_configuration, connection,
                             _connection.Endpoint.SecurityMode != SecurityMode.None) :
-                        CoreClientUtils.SelectEndpoint(_configuration, endpointUrl,
+                        CoreClientUtils.SelectEndpoint(_configuration, endpointUrl.ToString(),
                             _connection.Endpoint.SecurityMode != SecurityMode.None);
 
                     var endpointConfiguration = EndpointConfiguration.Create(
