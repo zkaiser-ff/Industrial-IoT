@@ -248,10 +248,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             {
                 _logger.LogError(ex, "Failed to close client {Client}.", this);
             }
-            finally
-            {
-                _reverseConnectManager?.Dispose();
-            }
         }
 
         /// <summary>

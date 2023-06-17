@@ -27,8 +27,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
-    using DotNetty.Common.Utilities;
-    using System.Data.Common;
 
     /// <summary>
     /// Client manager
