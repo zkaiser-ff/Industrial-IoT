@@ -89,7 +89,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Config.Models
             {
                 return false;
             }
-            if (model.UseReverseConnect != that.UseReverseConnect)
+            if ((model.UseReverseConnect ?? false) !=
+                (that.UseReverseConnect ?? false))
             {
                 return false;
             }

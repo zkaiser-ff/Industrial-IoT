@@ -76,14 +76,20 @@ namespace Azure.IIoT.OpcUa.Publisher.Models
 
             var connection = dataSetWriter.DataSet.DataSetSource.Connection;
 
-            // Adjust reverse connect setting if not specified
-            connection.IsReverse ??= options.DefaultUseReverseConnect;
-
             if (connection.Group == null)
             {
-                connection = connection.Clone();
-                Debug.Assert(connection != null);
-                connection.Group = writerGroupId;
+                connection = connection with
+                {
+                    Group = writerGroupId
+                };
+            }
+
+            if (connection.IsReverse == null && options.DefaultUseReverseConnect == true)
+            {
+                connection = connection with
+                {
+                   // IsReverse = options.DefaultUseReverseConnect
+                };
             }
             return new SubscriptionIdentifier(connection, dataSetWriter.DataSetWriterName);
         }

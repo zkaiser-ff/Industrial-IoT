@@ -398,7 +398,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Storage
                                         User = dataSet.Source.Connection?.User.Clone(),
                                         Diagnostics = dataSet.Source.Connection?.Diagnostics.Clone(),
                                         Group = dataSet.Source.Connection?.Group,
-                                        IsReverse = dataSet.Source.Connection?.IsReverse ?? false
+                                        IsReverse = dataSet.Source.Connection?.IsReverse
                                     },
                                     PublishedEvents = dataSet.Source.PublishedEvents.Clone(),
                                     PublishedVariables = dataSet.Source.PublishedVariables.Clone(),

@@ -109,6 +109,9 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                     return;
                 }
 
+                // TODO: This assumes unique ids per writer, but that is not guaranteed.
+                // We need a better way to identify a writer, not use subscription id
+                // from connection model here
                 var dataSetWriterSubscriptionMap = writerGroup.DataSetWriters.ToDictionary(
                     w => w.ToSubscriptionId(writerGroup.WriterGroupId, _subscriptionConfig.Value),
                     w => w);
