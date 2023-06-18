@@ -294,7 +294,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         [Fact]
         public async Task RestartConfigurationTest()
         {
-            var server = new ReferenceServer();
+            using var server = new ReferenceServer();
             EndpointUrl = server.EndpointUrl;
             for (var cycles = 0; cycles < 5; cycles++)
             {
