@@ -135,7 +135,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
             _cts.Cancel();
             try
             {
-                _batchTriggerIntervalTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+                _batchTriggerIntervalTimer.Change(Timeout.Infinite, Timeout.Infinite);
                 Source.OnCounterReset -= MessageTriggerCounterResetReceived;
                 Source.OnMessage -= OnMessageReceived;
 
@@ -143,11 +143,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                 _encodingBlock.Complete();
                 _sinkBlock.Complete();
 
-                await Task.WhenAll(
-                    //_sinkBlock.Completion,
-                    _batchDataSetMessageBlock.Completion,
-                    _encodingBlock.Completion).ConfigureAwait(false);
-                _batchTriggerIntervalTimer?.Dispose();
+                _batchTriggerIntervalTimer.Dispose();
+                await _sinkBlock.Completion.ConfigureAwait(false);
+                await _batchDataSetMessageBlock.Completion.ConfigureAwait(false);
+                await _encodingBlock.Completion.ConfigureAwait(false);
             }
             finally
             {
@@ -258,7 +257,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                 _batchTriggerIntervalTimer.Change(_batchTriggerInterval,
                     Timeout.InfiniteTimeSpan);
             }
-            _batchDataSetMessageBlock?.TriggerBatch();
+            _batchDataSetMessageBlock.TriggerBatch();
         }
 
         /// <summary>

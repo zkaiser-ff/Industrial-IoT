@@ -180,10 +180,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Testing.Fixtures
                     while (true)
                     {
                         clientPort = NextPort();
-                        if (!kPorts.TryAdd(clientPort, false))
-                        {
-                            continue;
-                        }
                         try
                         {
                             logger.LogInformation(
@@ -196,6 +192,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Testing.Fixtures
                         catch (Exception ex)
                         {
                             logger.LogError(ex, "Port {Port} is not accessible...", clientPort);
+                            kPorts.AddOrUpdate(clientPort, false, (_, _) => false);
                         }
                     }
                     UseReverseConnect = true;
