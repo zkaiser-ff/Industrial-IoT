@@ -26,7 +26,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
 
         [Theory]
         [InlineData(true)]
-        //[InlineData(false)]
+        [InlineData(false)]
         public async Task RegisteredReadTestAsync(bool useReverseConnect)
         {
             var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);
@@ -62,7 +62,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
 
         [Theory]
         [InlineData(true)]
-        //[InlineData(false)]
+        [InlineData(false)]
         public async Task KeepAliveTestAsync(bool useReverseConnect)
         {
             var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);

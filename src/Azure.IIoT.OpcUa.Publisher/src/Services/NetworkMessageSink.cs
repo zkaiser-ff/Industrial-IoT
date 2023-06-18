@@ -132,17 +132,21 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
         /// <inheritdoc/>
         public async ValueTask DisposeAsync()
         {
+            _cts.Cancel();
             try
             {
                 _batchTriggerIntervalTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                 Source.OnCounterReset -= MessageTriggerCounterResetReceived;
                 Source.OnMessage -= OnMessageReceived;
+
                 _batchDataSetMessageBlock.Complete();
-                await _batchDataSetMessageBlock.Completion.ConfigureAwait(false);
                 _encodingBlock.Complete();
-                await _encodingBlock.Completion.ConfigureAwait(false);
                 _sinkBlock.Complete();
-                await _sinkBlock.Completion.ConfigureAwait(false);
+
+                await Task.WhenAll(
+                    //_sinkBlock.Completion,
+                    _batchDataSetMessageBlock.Completion,
+                    _encodingBlock.Completion).ConfigureAwait(false);
                 _batchTriggerIntervalTimer?.Dispose();
             }
             finally
@@ -157,7 +161,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
         {
             try
             {
-                _cts.Cancel();
                 _meter.Dispose();
             }
             finally
