@@ -200,7 +200,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Testing.Fixtures
                     }
                     UseReverseConnect = true;
                     ReverseConnectPort = clientPort;
-                    var clientUrl = $"opc.tcp://{Host?.HostName ?? "localhost"}:{clientPort}";
+                    var clientUrl = $"opc.tcp://localhost:{clientPort}";
                     _serverHost.AddReverseConnectionAsync(new Uri(clientUrl), 2).GetAwaiter().GetResult();
                     logger.LogInformation("Start reverse connect to client at {Url}...", clientUrl);
                     break;
