@@ -8,7 +8,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
     using Azure.IIoT.OpcUa.Publisher.Module.Tests.Fixtures;
     using Azure.IIoT.OpcUa.Publisher.Testing.Fixtures;
     using Divergic.Logging.Xunit;
-    using Furly.Extensions.Logging;
     using System;
     using System.Linq;
     using System.Text.Json;
@@ -26,8 +25,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         }
 
         [Theory]
-        //[InlineData(true)]
-        [InlineData(false)]
+        [InlineData(true)]
+        //[InlineData(false)]
         public async Task RegisteredReadTestAsync(bool useReverseConnect)
         {
             var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);
@@ -62,8 +61,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         }
 
         [Theory]
-        //[InlineData(true)]
-        [InlineData(false)]
+        [InlineData(true)]
+        //[InlineData(false)]
         public async Task KeepAliveTestAsync(bool useReverseConnect)
         {
             var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);

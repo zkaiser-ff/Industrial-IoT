@@ -1404,11 +1404,20 @@ Actual (revised) state/desired state:
         /// <exception cref="NotImplementedException"></exception>
         private void OnSubscriptionKeepAliveNotification(Subscription subscription, NotificationData notification)
         {
-            if (subscription == null || subscription.Id != _currentSubscription?.Id)
+            if ((_currentSubscription?.Id ?? 0) == 0 || subscription == null)
+            {
+                // Nothing to do here
+                _logger.LogDebug("Got Keep alive without subscription in {Subscription}.",
+                    this);
+                return;
+            }
+
+            Debug.Assert(_currentSubscription != null);
+            if (subscription.Id != _currentSubscription.Id)
             {
                 _logger.LogWarning(
                     "Keep alive for wrong subscription {Id} received on {Subscription}.",
-                    subscription?.Id, this);
+                    subscription.Id, this);
                 return;
             }
 
