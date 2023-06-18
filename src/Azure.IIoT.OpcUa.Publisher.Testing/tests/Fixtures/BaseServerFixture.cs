@@ -175,10 +175,15 @@ namespace Azure.IIoT.OpcUa.Publisher.Testing.Fixtures
                         break;
                     }
 
+                    int clientPort;
                     // Find a port for the client
-                    var clientPort = NextPort();
                     while (true)
                     {
+                        clientPort = NextPort();
+                        if (!kPorts.TryAdd(clientPort, false))
+                        {
+                            continue;
+                        }
                         try
                         {
                             logger.LogInformation(
@@ -190,9 +195,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Testing.Fixtures
                         }
                         catch (Exception ex)
                         {
-                            kPorts.AddOrUpdate(clientPort, false, (_, _) => false);
                             logger.LogError(ex, "Port {Port} is not accessible...", clientPort);
-                            clientPort = NextPort();
                         }
                     }
                     UseReverseConnect = true;
