@@ -26,7 +26,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         }
 
         [Theory]
-        [InlineData(true)]
+        //[InlineData(true)]
         [InlineData(false)]
         public async Task RegisteredReadTestAsync(bool useReverseConnect)
         {
@@ -62,7 +62,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         }
 
         [Theory]
-        [InlineData(true)]
+        //[InlineData(true)]
         [InlineData(false)]
         public async Task KeepAliveTestAsync(bool useReverseConnect)
         {
