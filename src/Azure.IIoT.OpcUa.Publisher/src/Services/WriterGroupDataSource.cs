@@ -109,12 +109,23 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                     return;
                 }
 
-                // TODO: This assumes unique ids per writer, but that is not guaranteed.
-                // We need a better way to identify a writer, not use subscription id
-                // from connection model here
-                var dataSetWriterSubscriptionMap = writerGroup.DataSetWriters.ToDictionary(
-                    w => w.ToSubscriptionId(writerGroup.WriterGroupId, _subscriptionConfig.Value),
-                    w => w);
+                //
+                // Subscription identifier is the writer name, there should not be duplicate
+                // writer names here, if there are we throw an exception.
+                //
+                var dataSetWriterSubscriptionMap =
+                    new Dictionary<SubscriptionIdentifier, DataSetWriterModel>();
+                foreach (var writerEntry in writerGroup.DataSetWriters)
+                {
+                    var id = writerEntry.ToSubscriptionId(writerGroup.WriterGroupId,
+                        _subscriptionConfig.Value);
+                    if (!dataSetWriterSubscriptionMap.TryAdd(id, writerEntry))
+                    {
+                        throw new ArgumentException(
+                            $"Group {writerGroup.Name} contains duplicate writer {id}.");
+                    }
+                }
+
                 // Update or removed ones that were updated or removed.
                 foreach (var id in _subscriptions.Keys.ToList())
                 {
