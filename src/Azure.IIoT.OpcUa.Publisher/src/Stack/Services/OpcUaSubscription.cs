@@ -1191,16 +1191,11 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                 subscription = session.Subscriptions.SingleOrDefault(s => s.Handle == this);
 
                 // If it does not, close the current subscription
-                if (subscription == null)
+                if (subscription == null || _currentSubscription!.Id != subscription.Id)
                 {
                     // Does not throw
                     await CloseCurrentSubscriptionAsync().ConfigureAwait(false);
-                }
-                else if (_currentSubscription!.Id != subscription.Id)
-                {
-                    Debug.Assert(_currentSubscription.Session.Handle != subscription.Session.Handle);
-                    // Does not throw
-                    await CloseCurrentSubscriptionAsync().ConfigureAwait(false);
+                    subscription = null;
                 }
             }
             return subscription;

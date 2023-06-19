@@ -139,14 +139,15 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                 Source.OnCounterReset -= MessageTriggerCounterResetReceived;
                 Source.OnMessage -= OnMessageReceived;
 
-                _batchDataSetMessageBlock.Complete();
-                _encodingBlock.Complete();
-                _sinkBlock.Complete();
-
                 _batchTriggerIntervalTimer.Dispose();
-                await _sinkBlock.Completion.ConfigureAwait(false);
+
+                // Must be in the order of flow, complete and wait data to flow out.
+                _batchDataSetMessageBlock.Complete();
                 await _batchDataSetMessageBlock.Completion.ConfigureAwait(false);
+                _encodingBlock.Complete();
                 await _encodingBlock.Completion.ConfigureAwait(false);
+                _sinkBlock.Complete();
+                await _sinkBlock.Completion.ConfigureAwait(false);
             }
             finally
             {

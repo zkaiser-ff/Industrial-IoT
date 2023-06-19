@@ -309,7 +309,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
                     const string name2 = nameof(RestartConfigurationTest) + "new";
                     WritePublishedNodes(name2, "./Resources/DataItems2.json");
                     var diagnostics = await PublisherApi.GetDiagnosticInfoAsync().ConfigureAwait(false);
-                    for (var i = 0; i < 1000 &&
+                    for (var i = 0; i < 10 &&
                         (diagnostics.Count != 1 || diagnostics[0].Endpoint.DataSetWriterGroup != name2); i++)
                     {
                         _output.WriteLine($"######### {i}: Failed to get diagnosticsinfo.");
