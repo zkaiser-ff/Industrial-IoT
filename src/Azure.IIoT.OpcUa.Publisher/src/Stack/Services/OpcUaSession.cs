@@ -207,12 +207,17 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         }
 
         /// <inheritdoc/>
-        public async ValueTask<ComplexTypeSystem?> GetComplexTypeSystemAsync()
+        public async ValueTask<ComplexTypeSystem?> GetComplexTypeSystemAsync(CancellationToken ct)
         {
             try
             {
                 Debug.Assert(_complexTypeSystem != null);
-                return await _complexTypeSystem.ConfigureAwait(false);
+                return await _complexTypeSystem.WaitAsync(ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Throw any cancellation token exception
+                throw;
             }
             catch (Exception ex)
             {

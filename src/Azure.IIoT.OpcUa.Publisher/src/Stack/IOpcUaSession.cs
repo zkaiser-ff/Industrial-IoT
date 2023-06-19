@@ -61,8 +61,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack
         /// <summary>
         /// Get complex type system for the session
         /// </summary>
+        /// <param name="ct"></param>
         /// <returns></returns>
-        ValueTask<ComplexTypeSystem?> GetComplexTypeSystemAsync();
+        ValueTask<ComplexTypeSystem?> GetComplexTypeSystemAsync(
+            CancellationToken ct = default);
 
         /// <summary>
         /// Get operation limits

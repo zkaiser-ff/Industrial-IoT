@@ -277,7 +277,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                         // Ensure type system is loaded
                         if (!_session.IsTypeSystemLoaded)
                         {
-                            await _session.GetComplexTypeSystemAsync().ConfigureAwait(false);
+                            await _session.GetComplexTypeSystemAsync(ct).ConfigureAwait(false);
                         }
 
                         var context = new ServiceCallContext(_session);
@@ -335,7 +335,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                         // Ensure type system is loaded
                         if (!_session.IsTypeSystemLoaded)
                         {
-                            await _session.GetComplexTypeSystemAsync().ConfigureAwait(false);
+                            await _session.GetComplexTypeSystemAsync(ct).ConfigureAwait(false);
                         }
 
                         var context = new ServiceCallContext(_session);
@@ -1329,7 +1329,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                         // Ensure type system is loaded
                         if (!session.IsTypeSystemLoaded)
                         {
-                            await session.GetComplexTypeSystemAsync().ConfigureAwait(false);
+                            await session.GetComplexTypeSystemAsync(ct).ConfigureAwait(false);
                         }
 
                         // Perform the read.

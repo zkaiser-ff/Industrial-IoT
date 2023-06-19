@@ -738,6 +738,22 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             }
 
             //
+            // Ensure metadata is already available when we enable publishing if this is a new
+            // subscription. This ensures that the meta data is part of the first notification.
+            //
+            // TODO: We need a versioning scheme to align the metadata changes with the
+            // notifications we receive. Right now if not initial change it is possible that
+            // notifications arrive from previous state that already have the new metadata.
+            //
+            _currentlyMonitored = successfullyCompletedItems.ToImmutableHashSet();
+            if (metadataChanged)
+            {
+                _currentMetaData = await BuildMetadataAsync(sessionHandle, session, _currentlyMonitored,
+                    ct).ConfigureAwait(false);
+                metadataChanged = false;
+            }
+
+            //
             // Finally change the monitoring mode as required. Batch the requests
             // on the update of monitored item state from monitored items. On AddTo
             // the monitoring mode was already configured. This is for updates as
@@ -788,67 +804,22 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             }
 
             // Cleanup all items that are not in the currently monitoring list
-            var currentlyMonitored = successfullyCompletedItems.ToImmutableHashSet();
             previouslyMonitored
-                .Except(currentlyMonitored)
+                .Except(_currentlyMonitored)
                 .ToList()
                 .ForEach(m => m.Dispose());
             previouslyMonitored = ImmutableHashSet<IOpcUaMonitoredItem>.Empty;
 
             // Update subscription state
             NumberOfNotCreatedItems = invalidItems;
-            NumberOfCreatedItems = currentlyMonitored.Count - invalidItems;
+            NumberOfCreatedItems = _currentlyMonitored.Count - invalidItems;
 
             _logger.LogInformation(
                 "Now monitoring {Count} nodes in subscription {Subscription}.",
-                currentlyMonitored.Count, this);
-            // Assign the currently monitored item list
-            _currentlyMonitored = currentlyMonitored;
-
-            // Get metadata
-            if (metadataChanged && _subscription?.Configuration?.MetaData != null)
-            {
-                //
-                // Use the date time to version across reboots. This could be done more elegantly by
-                // saving the last version to persistent storage such as twin, but this is ok for
-                // the sake of being able to have an incremental version number defining metadata changes.
-                //
-                var metaDataVersion = DateTime.UtcNow.ToBinary();
-                var major = (uint)(metaDataVersion >> 32);
-                var minor = (uint)metaDataVersion;
-
-                _logger.LogInformation(
-                    "Metadata changed to {Major}.{Minor} for subscription {Subscription}.",
-                    major, minor, this);
-
-                var typeSystem = await sessionHandle.GetComplexTypeSystemAsync().ConfigureAwait(false);
-                var dataTypes = new NodeIdDictionary<DataTypeDescription>();
-                var fields = new FieldMetaDataCollection();
-                foreach (var monitoredItem in currentlyMonitored)
-                {
-                    monitoredItem.GetMetaData(sessionHandle, typeSystem, fields, dataTypes);
-                }
-
-                _currentMetaData = new DataSetMetaDataType
-                {
-                    Name = _subscription.Configuration.MetaData.Name,
-                    DataSetClassId = (Uuid)_subscription.Configuration.MetaData.DataSetClassId,
-                    Namespaces = session.NamespaceUris.ToArray(),
-                    EnumDataTypes = dataTypes.Values.OfType<EnumDescription>().ToArray(),
-                    StructureDataTypes = dataTypes.Values.OfType<StructureDescription>().ToArray(),
-                    SimpleDataTypes = dataTypes.Values.OfType<SimpleTypeDescription>().ToArray(),
-                    Fields = fields,
-                    Description = _subscription.Configuration.MetaData.Description,
-                    ConfigurationVersion = new ConfigurationVersionDataType
-                    {
-                        MajorVersion = major,
-                        MinorVersion = minor
-                    }
-                };
-            }
+                _currentlyMonitored.Count, this);
 
             // Refresh condition
-            if (currentlyMonitored.OfType<OpcUaMonitoredItem.Condition>().Any())
+            if (_currentlyMonitored.OfType<OpcUaMonitoredItem.Condition>().Any())
             {
                 _logger.LogInformation(
                     "Issuing ConditionRefresh on subscription {Subscription}", this);
@@ -879,7 +850,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
                 TriggerSubscriptionManagementCallbackIn(
                     _options.Value.InvalidMonitoredItemRetryDelay, TimeSpan.FromMinutes(5));
             }
-            else if (desiredMonitoredItems.Count != currentlyMonitored.Count)
+            else if (desiredMonitoredItems.Count != _currentlyMonitored.Count)
             {
                 // Try to periodically update the subscription
                 // TODO: Trigger on address space model changes...
@@ -895,6 +866,63 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
             }
 
             return noErrorFound;
+        }
+
+        /// <summary>
+        /// Collect metadata for the monitored items in the data set
+        /// </summary>
+        /// <param name="sessionHandle"></param>
+        /// <param name="session"></param>
+        /// <param name="monitoredItemsInDataSet"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        private async ValueTask<DataSetMetaDataType?> BuildMetadataAsync(IOpcUaSession sessionHandle,
+            ISession session, ImmutableHashSet<IOpcUaMonitoredItem> monitoredItemsInDataSet,
+            CancellationToken ct)
+        {
+            if (_subscription?.Configuration?.MetaData == null)
+            {
+                // Metadata disabled
+                return null;
+            }
+
+            //
+            // Use the date time to version across reboots. This could be done more elegantly by
+            // saving the last version to persistent storage such as twin, but this is ok for
+            // the sake of being able to have an incremental version number defining metadata changes.
+            //
+            var metaDataVersion = DateTime.UtcNow.ToBinary();
+            var major = (uint)(metaDataVersion >> 32);
+            var minor = (uint)metaDataVersion;
+
+            _logger.LogInformation(
+                "Metadata changed to {Major}.{Minor} for subscription {Subscription}.",
+                major, minor, this);
+
+            var typeSystem = await sessionHandle.GetComplexTypeSystemAsync(ct).ConfigureAwait(false);
+            var dataTypes = new NodeIdDictionary<DataTypeDescription>();
+            var fields = new FieldMetaDataCollection();
+            foreach (var monitoredItem in monitoredItemsInDataSet)
+            {
+                monitoredItem.GetMetaData(sessionHandle, typeSystem, fields, dataTypes);
+            }
+
+            return new DataSetMetaDataType
+            {
+                Name = _subscription.Configuration.MetaData.Name,
+                DataSetClassId = (Uuid)_subscription.Configuration.MetaData.DataSetClassId,
+                Namespaces = session.NamespaceUris.ToArray(),
+                EnumDataTypes = dataTypes.Values.OfType<EnumDescription>().ToArray(),
+                StructureDataTypes = dataTypes.Values.OfType<StructureDescription>().ToArray(),
+                SimpleDataTypes = dataTypes.Values.OfType<SimpleTypeDescription>().ToArray(),
+                Fields = fields,
+                Description = _subscription.Configuration.MetaData.Description,
+                ConfigurationVersion = new ConfigurationVersionDataType
+                {
+                    MajorVersion = major,
+                    MinorVersion = minor
+                }
+            };
         }
 
         /// <summary>
@@ -942,6 +970,8 @@ namespace Azure.IIoT.OpcUa.Publisher.Stack.Services
         private async ValueTask SyncWithSessionInternalAsync(IOpcUaSession handle,
             CancellationToken ct)
         {
+            Debug.Assert(_lock.CurrentCount == 0);
+
             // Get the raw session object from the session handle to do the heart surgery
             if (handle is not ISessionAccessor accessor ||
                 !accessor.TryGetSession(out var session)) // Should never happen.

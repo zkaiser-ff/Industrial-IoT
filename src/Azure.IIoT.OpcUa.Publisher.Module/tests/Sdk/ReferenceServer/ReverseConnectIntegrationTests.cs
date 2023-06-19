@@ -82,6 +82,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
                 var message = Assert.Single(messages).Message;
                 Assert.True(message.GetProperty("Messages")[0].TryGetProperty("Payload", out var payload));
                 Assert.Empty(payload.EnumerateObject());
+                Assert.NotNull(metadata);
 
                 var diagnostics = await PublisherApi.GetDiagnosticInfoAsync().ConfigureAwait(false);
                 var diag = Assert.Single(diagnostics);
