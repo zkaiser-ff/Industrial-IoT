@@ -958,9 +958,18 @@ namespace Azure.IIoT.OpcUa.Publisher.Services
                                 var jobs = Enumerable.Empty<WriterGroupModel>();
                                 if (!clear && !string.IsNullOrEmpty(content))
                                 {
-                                    _logger.LogInformation("Published Nodes File changed, " +
-                                        "last known hash {LastHash}, new hash {NewHash}, reloading...",
-                                        _lastKnownFileHash, currentFileHash);
+                                    if (string.IsNullOrEmpty(_lastKnownFileHash))
+                                    {
+                                        _logger.LogInformation(
+                                            "Found published Nodes File with hash {NewHash}, loading...",
+                                            currentFileHash);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogInformation("Published Nodes File changed, " +
+                                            "last known hash {LastHash}, new hash {NewHash}, reloading...",
+                                            _lastKnownFileHash, currentFileHash);
+                                    }
 
                                     var entries = _publishedNodesJobConverter.Read(content).ToList();
                                     TransformFromLegacyNodeId(entries);
