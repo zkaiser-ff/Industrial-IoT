@@ -32,7 +32,7 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
             var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);
             EndpointUrl = server.EndpointUrl;
 
-            const string name = nameof(RegisteredReadTestAsync);
+            var name = nameof(RegisteredReadTestAsync) + (useReverseConnect ? "WithReverseConnect" : "NoReverseConnect");
             StartPublisher(name, "./Resources/RegisteredRead.json", arguments: new string[] { "--mm=PubSub" },
                 reverseConnectPort: useReverseConnect ? server.ReverseConnectPort : null);
             try
@@ -65,10 +65,10 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
         [InlineData(false)]
         public async Task KeepAliveTestAsync(bool useReverseConnect)
         {
-            var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);
+            using var server = ReferenceServer.Create(LogFactory.Create(_output, Logging.Config), useReverseConnect);
             EndpointUrl = server.EndpointUrl;
 
-            const string name = nameof(KeepAliveTestAsync);
+            var name = nameof(KeepAliveTestAsync) + (useReverseConnect ? "WithReverseConnect" : "NoReverseConnect");
             StartPublisher(name, "./Resources/KeepAlive.json",
                 reverseConnectPort: useReverseConnect ? server.ReverseConnectPort : null);
             try
@@ -89,7 +89,6 @@ namespace Azure.IIoT.OpcUa.Publisher.Module.Tests.Sdk.ReferenceServer
             }
             finally
             {
-                server.Dispose();
                 StopPublisher();
             }
 
